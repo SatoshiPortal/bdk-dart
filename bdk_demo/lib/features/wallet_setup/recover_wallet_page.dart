@@ -3,7 +3,7 @@ import 'package:bdk_demo/core/router/app_router.dart';
 import 'package:bdk_demo/features/shared/widgets/secondary_app_bar.dart';
 import 'package:bdk_demo/models/wallet_record.dart';
 import 'package:bdk_demo/providers/wallet_providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -94,7 +94,7 @@ class _RecoverWalletPageState extends ConsumerState<RecoverWalletPage>
 
       _activateRecoveredWallet(record, wallet);
       _showSnackBar('Wallet recovered');
-      context.go(AppRoutes.home);
+      context.replace(AppRoutes.home);
     } on ArgumentError catch (error) {
       if (!mounted) return;
       _showSnackBar(_argumentErrorMessage(error, 'Invalid recovery input'));
@@ -147,7 +147,7 @@ class _RecoverWalletPageState extends ConsumerState<RecoverWalletPage>
 
       _activateRecoveredWallet(record, wallet);
       _showSnackBar('Wallet recovered');
-      context.go(AppRoutes.home);
+      context.replace(AppRoutes.home);
     } on DescriptorException {
       if (!mounted) return;
       _showSnackBar('Invalid descriptor. Please check both descriptors.');
@@ -173,7 +173,7 @@ class _RecoverWalletPageState extends ConsumerState<RecoverWalletPage>
   }
 
   void _activateRecoveredWallet(WalletRecord record, Wallet wallet) {
-    ref.read(activeWalletProvider.notifier).set(wallet);
+    ref.read(activeWalletProvider.notifier).set(wallet, walletId: record.id);
     ref.read(activeWalletRecordProvider.notifier).set(record);
     ref.read(walletRecordsProvider.notifier).refresh();
   }

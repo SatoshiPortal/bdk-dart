@@ -1,34 +1,153 @@
-import 'package:bdk_dart/bdk.dart';
-import 'package:uuid/uuid.dart';
+import 'dart:io';
 
+import 'package:bdk_dart/bdk.dart';
+import 'package:sqlite3/sqlite3.dart' as sqlite;
+import 'package:uuid/uuid.dart';
 import 'package:bdk_demo/core/constants/app_constants.dart';
 import 'package:bdk_demo/core/constants/bip39_wordlist.dart';
+import 'package:bdk_demo/core/utils/wallet_storage_paths.dart';
 import 'package:bdk_demo/models/wallet_record.dart';
+import 'package:bdk_demo/services/blockchain_service.dart';
 import 'package:bdk_demo/services/storage_service.dart';
 import 'package:bdk_demo/services/wallet_network_mapper.dart';
+import 'package:bdk_demo/services/wallet_sqlite_persistence.dart';
 
 typedef WalletDisposer = void Function(Wallet wallet);
 
+typedef WalletPersistRunner = Future<bool> Function(
+  Wallet wallet,
+  Persister persister,
+);
+typedef WalletLoadRunner = Wallet Function({
+  required Descriptor descriptor,
+  required Descriptor changeDescriptor,
+  required Persister persister,
+  required int lookahead,
+});
+
+enum _SqliteHealth { valid, corrupt, unknown }
+
 class WalletService {
+  WalletService({
+    required this._storage,
+    required this._uuid,
+    WalletDisposer? walletDisposer,
+    WalletPersistRunner? persistRunner,
+    WalletLoadRunner? walletLoadRunner,
+  }) : _walletDisposer = walletDisposer ?? _defaultDisposer,
+       _persistRunner = persistRunner ?? _defaultPersistRunner,
+       _walletLoadRunner = walletLoadRunner ?? _defaultWalletLoadRunner;
+
   final StorageService _storage;
   final Uuid _uuid;
   final WalletDisposer _walletDisposer;
+  final WalletPersistRunner _persistRunner;
+  final WalletLoadRunner _walletLoadRunner;
 
-  WalletService({
-    required StorageService storage,
-    required Uuid uuid,
-    WalletDisposer? walletDisposer,
-  }) : _storage = storage,
-       _uuid = uuid,
-       _walletDisposer = walletDisposer ?? _defaultDisposer;
+  static Future<bool> _defaultPersistRunner(
+    Wallet wallet,
+    Persister persister,
+  ) async => wallet.persist(persister: persister);
+
+  static Wallet _defaultWalletLoadRunner({
+    required Descriptor descriptor,
+    required Descriptor changeDescriptor,
+    required Persister persister,
+    required int lookahead,
+  }) {
+    return Wallet.load(
+      descriptor: descriptor,
+      changeDescriptor: changeDescriptor,
+      persister: persister,
+      lookahead: lookahead,
+    );
+  }
 
   static void _defaultDisposer(Wallet wallet) => wallet.dispose();
+
+  static const List<int> _sqliteHeader = <int>[
+    0x53,
+    0x51,
+    0x4c,
+    0x69,
+    0x74,
+    0x65,
+    0x20,
+    0x66,
+    0x6f,
+    0x72,
+    0x6d,
+    0x61,
+    0x74,
+    0x20,
+    0x33,
+    0x00,
+  ];
+
+  Future<void> _ensureWalletPersistedToSqlite(
+    Wallet wallet,
+    Persister persister,
+    Descriptor descriptor,
+    Descriptor changeDescriptor,
+    String dbPath,
+  ) async {
+    await persistWalletSqliteWithReopenVerify(
+      wallet: wallet,
+      persister: persister,
+      descriptor: descriptor,
+      changeDescriptor: changeDescriptor,
+      dbPath: dbPath,
+      persistRunner: _persistRunner,
+      loadRunner: _walletLoadRunner,
+    );
+  }
+
+  Future<_SqliteHealth> _probeSqliteHealth(File sqliteFile) async {
+    final RandomAccessFile handle;
+    try {
+      handle = await sqliteFile.open(mode: FileMode.read);
+    } catch (_) {
+      return _SqliteHealth.unknown;
+    }
+
+    try {
+      final header = await handle.read(_sqliteHeader.length);
+      if (header.length < _sqliteHeader.length) {
+        return _SqliteHealth.corrupt;
+      }
+      for (var i = 0; i < _sqliteHeader.length; i++) {
+        if (header[i] != _sqliteHeader[i]) {
+          return _SqliteHealth.corrupt;
+        }
+      }
+    } catch (_) {
+      return _SqliteHealth.unknown;
+    } finally {
+      await handle.close();
+    }
+
+    sqlite.Database? db;
+    try {
+      db = sqlite.sqlite3.open(sqliteFile.path, mode: sqlite.OpenMode.readOnly);
+      final rows = db.select('PRAGMA integrity_check;');
+      final result = rows.isNotEmpty ? rows.first['integrity_check'] : null;
+      return result == 'ok' ? _SqliteHealth.valid : _SqliteHealth.corrupt;
+    } catch (_) {
+      return _SqliteHealth.unknown;
+    } finally {
+      db?.close();
+    }
+  }
 
   String validateRecoveryPhrase(String phrase) {
     final normalized = phrase
         .trim()
         .toLowerCase()
-        .split(RegExp(r'\s+'))
+        .replaceAll('\t', ' ')
+        .replaceAll('\n', ' ')
+        .replaceAll('\r', ' ')
+        .split(' ')
+        .where((word) => word.isNotEmpty)
         .join(' ');
     if (normalized.isEmpty) {
       throw ArgumentError('Recovery phrase cannot be empty.');
@@ -66,10 +185,11 @@ class WalletService {
     final trimmedName = _validateNewWalletName(name);
 
     final bdkNetwork = walletNetwork.toBdkNetwork();
+    final bdkNetworkKind = walletNetwork.toBdkNetworkKind();
 
     final mnemonic = Mnemonic(wordCount: WordCount.words12);
     final secretKey = DescriptorSecretKey(
-      network: bdkNetwork,
+      networkKind: bdkNetworkKind,
       mnemonic: mnemonic,
       password: null,
     );
@@ -77,13 +197,13 @@ class WalletService {
     final descriptor = _deriveDescriptor(
       secretKey,
       KeychainKind.external_,
-      bdkNetwork,
+      bdkNetworkKind,
       scriptType,
     );
     final changeDescriptor = _deriveDescriptor(
       secretKey,
       KeychainKind.internal,
-      bdkNetwork,
+      bdkNetworkKind,
       scriptType,
     );
 
@@ -114,9 +234,10 @@ class WalletService {
 
     final normalized = validateRecoveryPhrase(phrase);
     final bdkNetwork = walletNetwork.toBdkNetwork();
+    final bdkNetworkKind = walletNetwork.toBdkNetworkKind();
     final mnemonic = Mnemonic.fromString(mnemonic: normalized);
     final secretKey = DescriptorSecretKey(
-      network: bdkNetwork,
+      networkKind: bdkNetworkKind,
       mnemonic: mnemonic,
       password: null,
     );
@@ -124,13 +245,13 @@ class WalletService {
     final descriptor = _deriveDescriptor(
       secretKey,
       KeychainKind.external_,
-      bdkNetwork,
+      bdkNetworkKind,
       scriptType,
     );
     final changeDescriptor = _deriveDescriptor(
       secretKey,
       KeychainKind.internal,
-      bdkNetwork,
+      bdkNetworkKind,
       scriptType,
     );
 
@@ -160,13 +281,14 @@ class WalletService {
     }
 
     final bdkNetwork = walletNetwork.toBdkNetwork();
+    final bdkNetworkKind = walletNetwork.toBdkNetworkKind();
     final descriptor = Descriptor(
       descriptor: trimmedExternal,
-      network: bdkNetwork,
+      networkKind: bdkNetworkKind,
     );
     final changeDescriptor = Descriptor(
       descriptor: trimmedChange,
-      network: bdkNetwork,
+      networkKind: bdkNetworkKind,
     );
 
     return _buildAndPersistWallet(
@@ -192,42 +314,347 @@ class WalletService {
     }
 
     final bdkNetwork = record.network.toBdkNetwork();
+    final bdkNetworkKind = record.network.toBdkNetworkKind();
 
     final descriptor = Descriptor(
       descriptor: secrets.descriptor,
-      network: bdkNetwork,
+      networkKind: bdkNetworkKind,
     );
     final changeDescriptor = Descriptor(
       descriptor: secrets.changeDescriptor,
-      network: bdkNetwork,
+      networkKind: bdkNetworkKind,
     );
 
-    final persister = Persister.newInMemory();
-    return Wallet(
+    final dbPath = await WalletStoragePaths.sqlitePathForWallet(record.id);
+    final sqliteFile = File(dbPath);
+    if (await sqliteFile.exists()) {
+      final sqliteHealth = await _probeSqliteHealth(sqliteFile);
+      if (sqliteHealth == _SqliteHealth.corrupt) {
+        return _reseedWalletToFallbackSqlite(
+          walletId: record.id,
+          descriptor: descriptor,
+          changeDescriptor: changeDescriptor,
+          bdkNetwork: bdkNetwork,
+        );
+      }
+
+      try {
+        final persister = Persister.newSqlite(path: dbPath);
+        try {
+          return _walletLoadRunner(
+            descriptor: descriptor,
+            changeDescriptor: changeDescriptor,
+            persister: persister,
+            lookahead: AppConstants.walletLookahead,
+          );
+        } finally {
+          persister.dispose();
+        }
+      } catch (error) {
+        throw StateError(
+          'Failed to load existing SQLite wallet at "$dbPath". '
+          'Preserving the current DB because it was not proven corrupt. '
+          'Original error: $error',
+        );
+      }
+    }
+
+    return _reseedWalletToPrimarySqlite(
+      walletId: record.id,
+      descriptor: descriptor,
+      changeDescriptor: changeDescriptor,
+      bdkNetwork: bdkNetwork,
+    );
+  }
+
+  Future<Psbt> buildTransaction(
+    WalletRecord record,
+    Wallet wallet,
+    String recipientAddress,
+    int amountSat,
+    int feeRateSatPerVb,
+  ) async {
+    final trimmedAddress = recipientAddress.trim();
+    if (trimmedAddress.isEmpty) {
+      throw ArgumentError('Recipient address must not be empty.');
+    }
+    if (amountSat <= 0) {
+      throw ArgumentError('Amount must be greater than zero.');
+    }
+    if (feeRateSatPerVb <= 0) {
+      throw ArgumentError('Fee rate must be greater than zero.');
+    }
+
+    final network = wallet.network();
+    final address = Address(address: trimmedAddress, network: network);
+    if (!address.isValidForNetwork(network: network)) {
+      throw ArgumentError('Recipient address is not valid for this network.');
+    }
+
+    final psbt = TxBuilder()
+        .addRecipient(
+          script: address.scriptPubkey(),
+          amount: Amount.fromSat(satoshi: amountSat),
+        )
+        .feeRate(feeRate: FeeRate.fromSatPerVb(satVb: feeRateSatPerVb))
+        .finish(wallet: wallet);
+
+    await _persistStagedWalletChanges(record, wallet);
+    return psbt;
+  }
+
+  Future<Txid> signAndBroadcast(
+    WalletRecord record,
+    Wallet wallet,
+    Psbt psbt,
+    BlockchainClient blockchainClient,
+  ) async {
+    final signed = wallet.sign(psbt: psbt, signOptions: null);
+    if (!signed) {
+      throw StateError('Could not sign transaction.');
+    }
+
+    final transaction = psbt.extractTx();
+    blockchainClient.broadcast(transaction);
+    wallet.applyUnconfirmedTxs(
+      unconfirmedTxs: [
+        UnconfirmedTx(
+          tx: transaction,
+          lastSeen:
+              DateTime.now().millisecondsSinceEpoch ~/
+              Duration.millisecondsPerSecond,
+        ),
+      ],
+    );
+    await _persistStagedWalletChanges(record, wallet);
+    return transaction.computeTxid();
+  }
+
+  Future<(AddressInfo, Wallet)> generateAddress(WalletRecord record) async {
+    final secrets = await _storage.getSecrets(record.id);
+    if (secrets == null) {
+      throw StateError(
+        'No secrets found for wallet "${record.name}" (${record.id}). '
+        'Cannot persist receive address.',
+      );
+    }
+
+    Descriptor? descriptor;
+    Descriptor? changeDescriptor;
+    Persister? persister;
+    Wallet? wallet;
+    var returnedWallet = false;
+    try {
+      final bdkNetworkKind = record.network.toBdkNetworkKind();
+      descriptor = Descriptor(
+        descriptor: secrets.descriptor,
+        networkKind: bdkNetworkKind,
+      );
+      changeDescriptor = Descriptor(
+        descriptor: secrets.changeDescriptor,
+        networkKind: bdkNetworkKind,
+      );
+      final dbPath = await WalletStoragePaths.sqlitePathForWallet(record.id);
+      wallet = await loadWalletFromRecord(record);
+
+      final receive = wallet.revealNextAddress(
+        keychain: KeychainKind.external_,
+      );
+      persister = Persister.newSqlite(path: dbPath);
+      await _ensureWalletPersistedToSqlite(
+        wallet,
+        persister,
+        descriptor,
+        changeDescriptor,
+        dbPath,
+      );
+      await _verifyReceiveIndexPersisted(
+        descriptor: descriptor,
+        changeDescriptor: changeDescriptor,
+        dbPath: dbPath,
+        revealedIndex: receive.index,
+      );
+      returnedWallet = true;
+      return (receive, wallet);
+    } finally {
+      if (!returnedWallet) {
+        wallet?.dispose();
+      }
+      persister?.dispose();
+      descriptor?.dispose();
+      changeDescriptor?.dispose();
+    }
+  }
+
+  Future<void> _verifyReceiveIndexPersisted({
+    required Descriptor descriptor,
+    required Descriptor changeDescriptor,
+    required String dbPath,
+    required int revealedIndex,
+  }) async {
+    Persister? verifierPersister;
+    Wallet? verifierWallet;
+    try {
+      verifierPersister = Persister.newSqlite(path: dbPath);
+      verifierWallet = _walletLoadRunner(
+        descriptor: descriptor,
+        changeDescriptor: changeDescriptor,
+        persister: verifierPersister,
+        lookahead: AppConstants.walletLookahead,
+      );
+      final nextExternalIndex = verifierWallet.nextDerivationIndex(
+        keychain: KeychainKind.external_,
+      );
+      if (nextExternalIndex <= revealedIndex) {
+        throw StateError(
+          'Wallet SQLite persistence did not save receive address index '
+          '$revealedIndex.',
+        );
+      }
+    } finally {
+      verifierWallet?.dispose();
+      verifierPersister?.dispose();
+    }
+  }
+
+  Future<Wallet> _reseedWalletToPrimarySqlite({
+    required String walletId,
+    required Descriptor descriptor,
+    required Descriptor changeDescriptor,
+    required Network bdkNetwork,
+  }) async {
+    final dbPath = await WalletStoragePaths.sqlitePathForWallet(walletId);
+    final persister = Persister.newSqlite(path: dbPath);
+    final wallet = Wallet(
       descriptor: descriptor,
       changeDescriptor: changeDescriptor,
       network: bdkNetwork,
       persister: persister,
       lookahead: AppConstants.walletLookahead,
     );
+    try {
+      await _ensureWalletPersistedToSqlite(
+        wallet,
+        persister,
+        descriptor,
+        changeDescriptor,
+        dbPath,
+      );
+    } catch (_) {
+      _walletDisposer(wallet);
+      persister.dispose();
+      await WalletStoragePaths.deleteWalletData(walletId);
+      rethrow;
+    }
+    persister.dispose();
+    return wallet;
+  }
+
+  Future<void> _persistStagedWalletChanges(
+    WalletRecord record,
+    Wallet wallet,
+  ) async {
+    if (wallet.staged() == null) return;
+
+    final secrets = await _storage.getSecrets(record.id);
+    if (secrets == null) {
+      throw StateError(
+        'No secrets found for wallet "${record.name}" (${record.id}). '
+        'Cannot persist transaction state.',
+      );
+    }
+
+    final bdkNetworkKind = record.network.toBdkNetworkKind();
+    final descriptor = Descriptor(
+      descriptor: secrets.descriptor,
+      networkKind: bdkNetworkKind,
+    );
+    final changeDescriptor = Descriptor(
+      descriptor: secrets.changeDescriptor,
+      networkKind: bdkNetworkKind,
+    );
+    final dbPath = await WalletStoragePaths.sqlitePathForWallet(record.id);
+    final persister = Persister.newSqlite(path: dbPath);
+    try {
+      await _ensureWalletPersistedToSqlite(
+        wallet,
+        persister,
+        descriptor,
+        changeDescriptor,
+        dbPath,
+      );
+    } finally {
+      persister.dispose();
+    }
+  }
+
+  Future<Wallet> _reseedWalletToFallbackSqlite({
+    required String walletId,
+    required Descriptor descriptor,
+    required Descriptor changeDescriptor,
+    required Network bdkNetwork,
+  }) async {
+    await WalletStoragePaths.deleteFallbackWalletData(walletId);
+    final fallbackDbPath = await WalletStoragePaths.sqliteFallbackPathForWallet(
+      walletId,
+    );
+    final fallbackPersister = Persister.newSqlite(path: fallbackDbPath);
+    final wallet = Wallet(
+      descriptor: descriptor,
+      changeDescriptor: changeDescriptor,
+      network: bdkNetwork,
+      persister: fallbackPersister,
+      lookahead: AppConstants.walletLookahead,
+    );
+
+    try {
+      await _ensureWalletPersistedToSqlite(
+        wallet,
+        fallbackPersister,
+        descriptor,
+        changeDescriptor,
+        fallbackDbPath,
+      );
+    } catch (_) {
+      _walletDisposer(wallet);
+      fallbackPersister.dispose();
+      await WalletStoragePaths.deleteFallbackWalletData(walletId);
+      rethrow;
+    }
+
+    _walletDisposer(wallet);
+    fallbackPersister.dispose();
+    await WalletStoragePaths.replaceWalletDataWithFallback(walletId);
+    final dbPath = await WalletStoragePaths.sqlitePathForWallet(walletId);
+    final persister = Persister.newSqlite(path: dbPath);
+    try {
+      return _walletLoadRunner(
+        descriptor: descriptor,
+        changeDescriptor: changeDescriptor,
+        persister: persister,
+        lookahead: AppConstants.walletLookahead,
+      );
+    } finally {
+      persister.dispose();
+    }
   }
 
   Descriptor _deriveDescriptor(
     DescriptorSecretKey secretKey,
     KeychainKind keychainKind,
-    Network network,
+    NetworkKind networkKind,
     ScriptType scriptType,
   ) {
     return switch (scriptType) {
       ScriptType.p2wpkh => Descriptor.newBip84(
         secretKey: secretKey,
         keychainKind: keychainKind,
-        network: network,
+        networkKind: networkKind,
       ),
       ScriptType.p2tr => Descriptor.newBip86(
         secretKey: secretKey,
         keychainKind: keychainKind,
-        network: network,
+        networkKind: networkKind,
       ),
       ScriptType.unknown => throw ArgumentError(
         'Unsupported script type: $scriptType',
@@ -248,15 +675,6 @@ class WalletService {
   }) async {
     final trimmedName = _validateNewWalletName(name);
 
-    final persister = Persister.newInMemory();
-    final wallet = Wallet(
-      descriptor: descriptor,
-      changeDescriptor: changeDescriptor,
-      network: bdkNetwork,
-      persister: persister,
-      lookahead: AppConstants.walletLookahead,
-    );
-
     final record = WalletRecord(
       id: _uuid.v4(),
       name: trimmedName,
@@ -271,11 +689,38 @@ class WalletService {
       recoveryPhrase: recoveryPhrase,
     );
 
+    Wallet? wallet;
+    Persister? persister;
     try {
+      final dbPath = await WalletStoragePaths.sqlitePathForWallet(record.id);
+      persister = Persister.newSqlite(path: dbPath);
+      wallet = Wallet(
+        descriptor: descriptor,
+        changeDescriptor: changeDescriptor,
+        network: bdkNetwork,
+        persister: persister,
+        lookahead: AppConstants.walletLookahead,
+      );
+
+      await _ensureWalletPersistedToSqlite(
+        wallet,
+        persister,
+        descriptor,
+        changeDescriptor,
+        dbPath,
+      );
+
       await _storage.addWalletRecord(record, secrets);
     } catch (_) {
-      _walletDisposer(wallet);
+      if (wallet != null) {
+        _walletDisposer(wallet);
+      }
+      persister?.dispose();
+      persister = null;
+      await WalletStoragePaths.deleteWalletData(record.id);
       rethrow;
+    } finally {
+      persister?.dispose();
     }
 
     return (record, wallet);
@@ -306,8 +751,7 @@ class WalletService {
         'Recovery phrase contains an unknown word at position ${index + 1}.',
       InvalidChecksumBip39Exception() =>
         'Recovery phrase checksum is invalid. Please double-check the phrase.',
-      _ =>
-        'Recovery phrase validation failed. Please verify the phrase and try again.',
+      _ => 'Recovery phrase validation failed. Please verify the phrase and try again.',
     };
   }
 }

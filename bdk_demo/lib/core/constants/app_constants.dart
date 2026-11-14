@@ -9,6 +9,14 @@ abstract final class AppConstants {
 
   static const syncParallelRequests = 4;
 
+  static const electrumSyncBatchSize = 10;
+
+  static const electrumFetchPrevTxouts = false;
+
+  static const syncSlowWarningAfter = Duration(seconds: 10);
+
+  static const syncTimeout = Duration(seconds: 20);
+
   static const maxRecipients = 4;
 
   static const maxLogEntries = 5000;

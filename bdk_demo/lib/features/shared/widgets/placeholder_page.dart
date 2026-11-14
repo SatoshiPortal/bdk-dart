@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'package:bdk_demo/features/shared/widgets/secondary_app_bar.dart';
 

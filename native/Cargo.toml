@@ -1,10 +1,11 @@
 [package]
 name = "bdk_dart_ffi"
 description = "This is a simple wrapper crate which re-exports bdk-ffi for publishing to pub.dev"
-version = "2.3.0-alpha.0"
+version = "1.0.1"
 homepage = "https://bitcoindevkit.org"
 repository = "https://github.com/bitcoindevkit/bdk-dart"
 edition = "2021"
+build = "build.rs"
 license = "MIT OR Apache-2.0"
 publish = false
 
@@ -17,13 +18,17 @@ name = "uniffi-bindgen"
 path = "uniffi-bindgen.rs"
 
 [dependencies]
-bdk-ffi = { package = "bdk-ffi", git = "https://github.com/bitcoindevkit/bdk-ffi.git", tag = "v2.3.1" }
-uniffi = { version = "=0.31.1", features = ["cli"] }
-uniffi-dart = { git = "https://github.com/Uniffi-Dart/uniffi-dart", tag = "v0.2.0+v0.31.1" }
+bdk-ffi = { package = "bdk-ffi", git = "https://github.com/ethicnology/bdk-ffi.git", rev = "3a7d70219f02b2b49b5e8764f52d7590f7333489" }
+uniffi = { version = "=0.31.2", features = ["cli"] }
+uniffi-dart = { git = "https://github.com/Uniffi-Dart/uniffi-dart", tag = "v0.2.1+v0.31.2" }
 camino = "1.2"
 
-[build-dependencies]
-uniffi = { version = "=0.31.1", features = ["build"] }
-uniffi-dart = { git = "https://github.com/Uniffi-Dart/uniffi-dart", tag = "v0.2.0+v0.31.1", features = [
-    "build",
-] }
+# Reproducible builds: force a single codegen unit. With the default (16),
+# rustc partitions each crate across parallel codegen units and the resulting
+# function layout in the .so is not stable across build environments, so the
+# same source produces byte-diverging libraries. codegen-units = 1 removes that
+# partitioning. This is pinned in the crate itself because the native-assets
+# build (native_toolchain_rust) does not reliably inherit the caller's
+# CARGO_PROFILE_RELEASE_CODEGEN_UNITS / CARGO_ENCODED_RUSTFLAGS environment.
+[profile.release]
+codegen-units = 1

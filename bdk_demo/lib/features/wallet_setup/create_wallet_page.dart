@@ -2,7 +2,7 @@ import 'package:bdk_demo/core/router/app_router.dart';
 import 'package:bdk_demo/features/shared/widgets/secondary_app_bar.dart';
 import 'package:bdk_demo/models/wallet_record.dart';
 import 'package:bdk_demo/providers/wallet_providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -56,12 +56,12 @@ class _CreateWalletPageState extends ConsumerState<CreateWalletPage> {
         return;
       }
 
-      ref.read(activeWalletProvider.notifier).set(wallet);
+      ref.read(activeWalletProvider.notifier).set(wallet, walletId: record.id);
       ref.read(activeWalletRecordProvider.notifier).set(record);
       ref.read(walletRecordsProvider.notifier).refresh();
 
       _showSnackBar('Wallet created');
-      context.go(AppRoutes.home);
+      context.replace(AppRoutes.home);
     } on ArgumentError {
       if (!mounted) return;
       _showSnackBar('Invalid wallet name');

@@ -2,7 +2,7 @@ import 'package:bdk_demo/core/router/app_router.dart';
 import 'package:bdk_demo/features/shared/widgets/secondary_app_bar.dart';
 import 'package:bdk_demo/models/wallet_record.dart';
 import 'package:bdk_demo/providers/wallet_providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -32,9 +32,9 @@ class _ActiveWalletsPageState extends ConsumerState<ActiveWalletsPage> {
         return;
       }
 
-      ref.read(activeWalletProvider.notifier).set(wallet);
+      ref.read(activeWalletProvider.notifier).set(wallet, walletId: record.id);
       ref.read(activeWalletRecordProvider.notifier).set(record);
-      context.go(AppRoutes.home);
+      context.push(AppRoutes.home);
     } on StateError {
       if (!mounted) return;
       _showSnackBar('Secrets not found for this wallet');

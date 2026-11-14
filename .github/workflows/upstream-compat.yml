@@ -6,6 +6,9 @@ on:
     - cron: "0 9 * * 1"
   workflow_dispatch:
 
+env:
+  RUSTUP_TOOLCHAIN: 1.100.0
+
 jobs:
   bdk-ffi-head:
     runs-on: ubuntu-latest
@@ -14,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.100.0
 
       - name: Setup Dart
         uses: dart-lang/setup-dart@v1
@@ -41,10 +44,19 @@ jobs:
           echo "Testing against bdk-ffi commit: $latest_sha"
           grep '^bdk-ffi = ' native/Cargo.toml
 
+      - name: Refresh bdk-ffi lockfile
+        run: cargo update --manifest-path native/Cargo.toml -p bdk-ffi
+
       - name: Regenerate bindings against upstream
         run: |
           chmod +x scripts/generate_bindings.sh
           ./scripts/generate_bindings.sh
+
+      - name: Analyze against upstream
+        run: dart analyze --fatal-infos --fatal-warnings lib test example
+
+      - name: Run tests against upstream
+        run: dart test
 
       - name: Check generated binding drift
         shell: bash
@@ -55,6 +67,3 @@ jobs:
             git --no-pager diff --stat -- lib/bdk.dart || true
             exit 1
           fi
-
-      - name: Run tests against upstream
-        run: dart test

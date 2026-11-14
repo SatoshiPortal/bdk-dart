@@ -1,14 +1,19 @@
+import 'dart:io';
+
 import 'package:bdk_dart/bdk.dart';
-import 'package:uuid/uuid.dart';
+import 'package:bdk_demo/core/utils/wallet_storage_paths.dart';
 import 'package:bdk_demo/models/wallet_record.dart';
+import 'package:bdk_demo/services/wallet_network_mapper.dart';
 import 'package:bdk_demo/services/storage_service.dart';
 import 'package:bdk_demo/services/wallet_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 
 late StorageService storageService;
 late WalletService walletService;
+Directory? _documentsRoot;
 
 const _valid12WordPhrase =
     'abandon abandon abandon abandon abandon abandon abandon abandon '
@@ -19,6 +24,10 @@ const _invalidChecksumPhrase =
     'abandon abandon abandon ability';
 
 Future<void> _initServices() async {
+  _documentsRoot = await Directory.systemTemp.createTemp(
+    'recovery_service_test_',
+  );
+  WalletStoragePaths.setDocumentsRootOverride(_documentsRoot);
   SharedPreferences.setMockInitialValues({});
   FlutterSecureStorage.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
@@ -26,18 +35,23 @@ Future<void> _initServices() async {
   walletService = WalletService(storage: storageService, uuid: const Uuid());
 }
 
+Future<void> _tearDownServices() async {
+  WalletStoragePaths.setDocumentsRootOverride(null);
+  final root = _documentsRoot;
+  _documentsRoot = null;
+  if (root != null && root.existsSync()) {
+    await root.delete(recursive: true);
+  }
+}
+
 (String, String) _publicBip84Descriptors(
   WalletNetwork walletNetwork,
   String phrase,
 ) {
-  final bdkNetwork = switch (walletNetwork) {
-    WalletNetwork.signet => Network.signet,
-    WalletNetwork.testnet => Network.testnet,
-    WalletNetwork.regtest => Network.regtest,
-  };
+  final bdkNetworkKind = walletNetwork.toBdkNetworkKind();
   final mnemonic = Mnemonic.fromString(mnemonic: phrase);
   final secretKey = DescriptorSecretKey(
-    network: bdkNetwork,
+    networkKind: bdkNetworkKind,
     mnemonic: mnemonic,
     password: null,
   );
@@ -48,13 +62,13 @@ Future<void> _initServices() async {
     publicKey: publicKey,
     fingerprint: fingerprint,
     keychainKind: KeychainKind.external_,
-    network: bdkNetwork,
+    networkKind: bdkNetworkKind,
   );
   final changeDescriptor = Descriptor.newBip84Public(
     publicKey: publicKey,
     fingerprint: fingerprint,
     keychainKind: KeychainKind.internal,
-    network: bdkNetwork,
+    networkKind: bdkNetworkKind,
   );
 
   return (descriptor.toString(), changeDescriptor.toString());
@@ -65,6 +79,7 @@ void main() {
 
   group('WalletService recovery', () {
     setUp(_initServices);
+    tearDown(_tearDownServices);
 
     group('recoverFromPhrase', () {
       test('success path persists normalized phrase and metadata', () async {
@@ -197,6 +212,29 @@ void main() {
         expect(addressInfo.address.toString(), isNotEmpty);
         loaded.dispose();
       });
+
+      test(
+        'missing SQLite is reseeded on reload after phrase recovery',
+        () async {
+          final (record, wallet) = await walletService.recoverFromPhrase(
+            'Reseed Recover',
+            WalletNetwork.testnet,
+            ScriptType.p2wpkh,
+            _valid12WordPhrase,
+          );
+          wallet.dispose();
+
+          final sqlitePath = await WalletStoragePaths.sqlitePathForWallet(
+            record.id,
+          );
+          await File(sqlitePath).delete();
+          expect(File(sqlitePath).existsSync(), isFalse);
+
+          final loaded = await walletService.loadWalletFromRecord(record);
+          expect(File(sqlitePath).existsSync(), isTrue);
+          loaded.dispose();
+        },
+      );
     });
 
     group('recoverFromDescriptors', () {

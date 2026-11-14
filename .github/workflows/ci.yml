@@ -1,10 +1,14 @@
 name: CI
 
 on:
+  workflow_call:
   push:
     branches: [main, "**"]
   pull_request:
     branches: [main]
+
+env:
+  RUSTUP_TOOLCHAIN: 1.100.0
 
 jobs:
   build-and-test:
@@ -17,17 +21,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.100.0
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-
-      - name: Setup Dart
-        uses: dart-lang/setup-dart@v1
-        with:
-          sdk: "3.10.0"
 
       - name: Install lipo (macOS)
         if: matrix.os == 'macos-latest'
@@ -41,6 +40,9 @@ jobs:
 
       - name: Ensure generated bindings exist
         run: test -f lib/bdk.dart
+
+      - name: Check generated binding drift
+        run: git diff --exit-code -- lib/bdk.dart
 
       - name: Pub get
         run: dart pub get
@@ -63,6 +65,10 @@ jobs:
         run: |
           dart test
 
+      - name: Run tests (bdk_demo)
+        working-directory: bdk_demo
+        run: flutter test
+
   windows-smoke:
     runs-on: windows-latest
 
@@ -71,7 +77,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.100.0
 
       - name: Setup Dart
         uses: dart-lang/setup-dart@v1
@@ -95,7 +101,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.100.0
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -121,6 +127,89 @@ jobs:
         working-directory: bdk_demo
         run: flutter build apk --debug --target-platform android-arm64
 
+      - name: Verify APK ELF alignment
+        run: dart scripts/check_android_elf_alignment.dart bdk_demo/build/app/outputs/flutter-apk/app-debug.apk
+
+  android-alignment:
+    name: android-alignment (${{ matrix.rust_target }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rust_target: aarch64-linux-android
+            dart_arch: arm64
+          - rust_target: x86_64-linux-android
+            dart_arch: x64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@1.100.0
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: ""
+
+      - name: Setup Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: "3.10.0"
+
+      - name: Pub get
+        run: dart pub get
+
+      - name: Install Android NDK
+        run: sdkmanager "ndk;27.1.12297006"
+
+      - name: Build Android native library with NDK 27
+        run: |
+          rustup toolchain install 1.100.0 --profile minimal --target "${{ matrix.rust_target }}"
+          NDK="$ANDROID_HOME/ndk/27.1.12297006"
+          TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64"
+          export ANDROID_NDK_HOME="$NDK"
+          export ANDROID_NDK_ROOT="$NDK"
+
+          case "${{ matrix.rust_target }}" in
+            aarch64-linux-android)
+              export AR_aarch64_linux_android="$TOOLCHAIN/bin/llvm-ar"
+              export CC_aarch64_linux_android="$TOOLCHAIN/bin/aarch64-linux-android35-clang"
+              export CXX_aarch64_linux_android="$TOOLCHAIN/bin/aarch64-linux-android35-clang++"
+              export CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER="$TOOLCHAIN/bin/aarch64-linux-android35-clang"
+              export BINDGEN_EXTRA_CLANG_ARGS_aarch64_linux_android="--sysroot=$TOOLCHAIN/sysroot -I$TOOLCHAIN/sysroot/usr/include/aarch64-linux-android"
+              ;;
+            x86_64-linux-android)
+              export AR_x86_64_linux_android="$TOOLCHAIN/bin/llvm-ar"
+              export CC_x86_64_linux_android="$TOOLCHAIN/bin/x86_64-linux-android35-clang"
+              export CXX_x86_64_linux_android="$TOOLCHAIN/bin/x86_64-linux-android35-clang++"
+              export CARGO_TARGET_X86_64_LINUX_ANDROID_LINKER="$TOOLCHAIN/bin/x86_64-linux-android35-clang"
+              export BINDGEN_EXTRA_CLANG_ARGS_x86_64_linux_android="--sysroot=$TOOLCHAIN/sysroot -I$TOOLCHAIN/sysroot/usr/include/x86_64-linux-android"
+              ;;
+            *)
+              echo "Unsupported Android target: ${{ matrix.rust_target }}"
+              exit 1
+              ;;
+          esac
+
+          rustup run 1.100.0 cargo build \
+            --release \
+            --manifest-path native/Cargo.toml \
+            --package bdk_dart_ffi \
+            --target "${{ matrix.rust_target }}" \
+            --target-dir /tmp/bdk-dart-android-target
+
+      - name: Verify NDK 27 native library alignment
+        run: dart scripts/check_android_elf_alignment.dart /tmp/bdk-dart-android-target/${{ matrix.rust_target }}/release/libbdk_dart_ffi.so
+
+      - name: Verify NDK 27 hook alignment
+        run: |
+          export ANDROID_NDK_HOME="$ANDROID_HOME/ndk/27.1.12297006"
+          export ANDROID_NDK_ROOT="$ANDROID_NDK_HOME"
+          dart scripts/check_android_hook_alignment.dart --arch "${{ matrix.dart_arch }}"
+
   ios-smoke:
     runs-on: macos-latest
     steps:
@@ -128,7 +217,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@1.100.0
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2

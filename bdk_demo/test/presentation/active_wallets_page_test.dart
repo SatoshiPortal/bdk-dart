@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:bdk_demo/core/router/app_router.dart';
+import 'package:bdk_demo/core/utils/wallet_storage_paths.dart';
+import 'package:bdk_demo/features/shared/widgets/secondary_app_bar.dart';
 import 'package:bdk_demo/features/wallet_setup/active_wallets_page.dart';
 import 'package:bdk_demo/models/wallet_record.dart';
 import 'package:bdk_demo/providers/settings_providers.dart';
@@ -8,7 +11,7 @@ import 'package:bdk_demo/providers/wallet_providers.dart';
 import 'package:bdk_demo/services/storage_service.dart';
 import 'package:bdk_demo/services/wallet_service.dart';
 import 'package:bdk_dart/bdk.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,8 +19,48 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+const _testExtendedPrivKey =
+    'tprv8ZgxMBicQKsPf2qfrEygW6fdYseJDDrVnDv26PH5BHdvSuG6ecCbHqLVof9yZcMoM31z9ur3tTYbSnr1WBqbGX97CbXcmp5H6qeMpyvx35B';
+
+Wallet _createTestWallet({Network network = Network.testnet}) {
+  final coinType = 1;
+  final descriptor = Descriptor(
+    descriptor: 'wpkh($_testExtendedPrivKey/84h/${coinType}h/0h/0/*)',
+    networkKind: NetworkKind.test,
+  );
+  final changeDescriptor = Descriptor(
+    descriptor: 'wpkh($_testExtendedPrivKey/84h/${coinType}h/0h/1/*)',
+    networkKind: NetworkKind.test,
+  );
+  return Wallet(
+    descriptor: descriptor,
+    changeDescriptor: changeDescriptor,
+    network: network,
+    persister: Persister.newInMemory(),
+    lookahead: 25,
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  Directory? walletDocsRoot;
+
+  setUp(() async {
+    walletDocsRoot = await Directory.systemTemp.createTemp(
+      'active_wallets_page_wallet_',
+    );
+    WalletStoragePaths.setDocumentsRootOverride(walletDocsRoot);
+  });
+
+  tearDown(() async {
+    WalletStoragePaths.setDocumentsRootOverride(null);
+    final root = walletDocsRoot;
+    walletDocsRoot = null;
+    if (root != null && root.existsSync()) {
+      await root.delete(recursive: true);
+    }
+  });
 
   late StorageService storageService;
 
@@ -43,7 +86,10 @@ void main() {
         ),
         GoRoute(
           path: AppRoutes.home,
-          builder: (context, state) => const Scaffold(body: Text('Home')),
+          builder: (context, state) => const Scaffold(
+            appBar: SecondaryAppBar(title: 'Home'),
+            body: Text('Home'),
+          ),
         ),
       ],
     );
@@ -133,20 +179,30 @@ void main() {
       tester,
     ) async {
       storageService = await initStorage();
-      final walletService = WalletService(
+      final wallet = _createTestWallet();
+      const record = WalletRecord(
+        id: 'load-me-id',
+        name: 'Load Me',
+        network: WalletNetwork.testnet,
+        scriptType: ScriptType.p2wpkh,
+      );
+      await storageService.addWalletRecord(
+        record,
+        const WalletSecrets(
+          descriptor: 'dummy-desc',
+          changeDescriptor: 'dummy-change',
+        ),
+      );
+      final walletService = _ImmediateLoadWalletService(
         storage: storageService,
-        uuid: const Uuid(),
+        wallet: wallet,
       );
-
-      final (record, createdWallet) = await walletService.createWallet(
-        'Load Me',
-        WalletNetwork.testnet,
-        ScriptType.p2wpkh,
-      );
-      createdWallet.dispose();
 
       final container = ProviderContainer(
-        overrides: [storageServiceProvider.overrideWithValue(storageService)],
+        overrides: [
+          storageServiceProvider.overrideWithValue(storageService),
+          walletServiceProvider.overrideWithValue(walletService),
+        ],
       );
       addTearDown(container.dispose);
 
@@ -155,11 +211,58 @@ void main() {
       await tester.tap(find.text('Load Me'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Home'), findsOneWidget);
+      expect(find.byType(SecondaryAppBar), findsOneWidget);
+      expect(find.text('Home'), findsNWidgets(2));
       expect(container.read(activeWalletRecordProvider)?.id, record.id);
 
       final activeWallet = container.read(activeWalletProvider);
       expect(activeWallet, isNotNull);
+    });
+
+    testWidgets('back from home returns to Active Wallets after loading', (
+      tester,
+    ) async {
+      storageService = await initStorage();
+      final wallet = _createTestWallet();
+      const record = WalletRecord(
+        id: 'back-nav-id',
+        name: 'Back Nav Wallet',
+        network: WalletNetwork.testnet,
+        scriptType: ScriptType.p2wpkh,
+      );
+      await storageService.addWalletRecord(
+        record,
+        const WalletSecrets(
+          descriptor: 'dummy-desc',
+          changeDescriptor: 'dummy-change',
+        ),
+      );
+      final walletService = _ImmediateLoadWalletService(
+        storage: storageService,
+        wallet: wallet,
+      );
+
+      final container = ProviderContainer(
+        overrides: [
+          storageServiceProvider.overrideWithValue(storageService),
+          walletServiceProvider.overrideWithValue(walletService),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await pumpActiveWalletsPage(tester, container);
+
+      await tester.tap(find.text('Back Nav Wallet'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SecondaryAppBar), findsOneWidget);
+      expect(find.text('Home'), findsNWidgets(2));
+
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ActiveWalletsPage), findsOneWidget);
+      expect(find.text('Back Nav Wallet'), findsOneWidget);
     });
 
     testWidgets('missing secrets shows error and does not navigate', (
@@ -222,15 +325,7 @@ void main() {
           ),
         );
 
-        final realWalletService = WalletService(
-          storage: storageService,
-          uuid: const Uuid(),
-        );
-        final (_, wallet) = await realWalletService.createWallet(
-          'Load Candidate',
-          WalletNetwork.signet,
-          ScriptType.p2tr,
-        );
+        final wallet = _createTestWallet(network: Network.signet);
 
         final completer = Completer<Wallet>();
         final delayedService = _DelayedLoadWalletService(
@@ -279,5 +374,17 @@ class _DelayedLoadWalletService extends WalletService {
   @override
   Future<Wallet> loadWalletFromRecord(WalletRecord record) {
     return completer.future;
+  }
+}
+
+class _ImmediateLoadWalletService extends WalletService {
+  _ImmediateLoadWalletService({required super.storage, required this.wallet})
+    : super(uuid: const Uuid());
+
+  final Wallet wallet;
+
+  @override
+  Future<Wallet> loadWalletFromRecord(WalletRecord record) async {
+    return wallet;
   }
 }

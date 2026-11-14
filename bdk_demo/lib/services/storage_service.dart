@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:bdk_demo/models/wallet_record.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -7,6 +8,9 @@ abstract final class _PrefKeys {
   static const introDone = 'intro_done';
   static const darkTheme = 'dark_theme';
   static const walletRecords = 'wallet_records';
+
+  static String networkEndpointUrl(WalletNetwork network) =>
+      'network_endpoint_url_${network.name}';
 }
 
 abstract final class _SecureKeys {
@@ -17,11 +21,8 @@ class StorageService {
   final SharedPreferences _prefs;
   final FlutterSecureStorage _secure;
 
-  StorageService({
-    required SharedPreferences prefs,
-    FlutterSecureStorage? secure,
-  }) : _prefs = prefs,
-       _secure = secure ?? const FlutterSecureStorage();
+  StorageService({required this._prefs, FlutterSecureStorage? secure})
+    : _secure = secure ?? const FlutterSecureStorage();
 
   bool getIntroDone() => _prefs.getBool(_PrefKeys.introDone) ?? false;
 
@@ -79,5 +80,12 @@ class StorageService {
       _PrefKeys.walletRecords,
       WalletRecord.encodeList(updated),
     );
+  }
+
+  String? getSelectedEndpointUrl(WalletNetwork network) =>
+      _prefs.getString(_PrefKeys.networkEndpointUrl(network));
+
+  Future<void> setSelectedEndpointUrl(WalletNetwork network, String url) async {
+    await _prefs.setString(_PrefKeys.networkEndpointUrl(network), url);
   }
 }
