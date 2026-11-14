@@ -4,7 +4,7 @@ import 'package:bdk_demo/features/transactions/transaction_detail_page.dart';
 import 'package:bdk_demo/features/transactions/transactions_repository.dart';
 import 'package:bdk_demo/providers/wallet_providers.dart';
 import 'package:bdk_demo/models/wallet_record.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 

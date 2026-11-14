@@ -15,7 +15,7 @@ import 'package:bdk_demo/services/storage_service.dart';
 import 'package:bdk_demo/services/wallet_service.dart';
 import 'package:bdk_demo/services/wallet_sync_job.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
