@@ -21,10 +21,9 @@ class StorageService {
   final FlutterSecureStorage _secure;
 
   StorageService({
-    required SharedPreferences prefs,
+    required this._prefs,
     FlutterSecureStorage? secure,
-  }) : _prefs = prefs,
-       _secure = secure ?? const FlutterSecureStorage();
+  }) : _secure = secure ?? const FlutterSecureStorage();
 
   bool getIntroDone() => _prefs.getBool(_PrefKeys.introDone) ?? false;
 

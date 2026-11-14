@@ -27,14 +27,12 @@ enum _SqliteHealth { valid, corrupt, unknown }
 
 class WalletService {
   WalletService({
-    required StorageService storage,
-    required Uuid uuid,
+    required this._storage,
+    required this._uuid,
     WalletDisposer? walletDisposer,
     WalletPersistRunner? persistRunner,
     WalletLoadRunner? walletLoadRunner,
-  }) : _storage = storage,
-       _uuid = uuid,
-       _walletDisposer = walletDisposer ?? _defaultDisposer,
+  }) : _walletDisposer = walletDisposer ?? _defaultDisposer,
        _persistRunner = persistRunner ?? _defaultPersistRunner,
        _walletLoadRunner = walletLoadRunner ?? _defaultWalletLoadRunner;
 

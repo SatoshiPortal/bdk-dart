@@ -42,10 +42,9 @@ class TransactionHistoryRecord {
 
 class WalletTransactionsRepository implements TransactionsRepository {
   WalletTransactionsRepository({
-    required String? walletId,
-    required TransactionHistorySource? source,
-  }) : _walletId = walletId,
-       _source = source;
+    required this._walletId,
+    required this._source,
+  });
 
   final String? _walletId;
   final TransactionHistorySource? _source;
