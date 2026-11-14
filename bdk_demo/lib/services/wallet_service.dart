@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:bdk_dart/bdk.dart';
 import 'package:sqlite3/sqlite3.dart' as sqlite;
 import 'package:uuid/uuid.dart';
@@ -13,15 +14,16 @@ import 'package:bdk_demo/services/wallet_sqlite_persistence.dart';
 
 typedef WalletDisposer = void Function(Wallet wallet);
 
-typedef WalletPersistRunner =
-    Future<bool> Function(Wallet wallet, Persister persister);
-typedef WalletLoadRunner =
-    Wallet Function({
-      required Descriptor descriptor,
-      required Descriptor changeDescriptor,
-      required Persister persister,
-      required int lookahead,
-    });
+typedef WalletPersistRunner = Future<bool> Function(
+  Wallet wallet,
+  Persister persister,
+);
+typedef WalletLoadRunner = Wallet Function({
+  required Descriptor descriptor,
+  required Descriptor changeDescriptor,
+  required Persister persister,
+  required int lookahead,
+});
 
 enum _SqliteHealth { valid, corrupt, unknown }
 
@@ -749,8 +751,7 @@ class WalletService {
         'Recovery phrase contains an unknown word at position ${index + 1}.',
       InvalidChecksumBip39Exception() =>
         'Recovery phrase checksum is invalid. Please double-check the phrase.',
-      _ =>
-        'Recovery phrase validation failed. Please verify the phrase and try again.',
+      _ => 'Recovery phrase validation failed. Please verify the phrase and try again.',
     };
   }
 }

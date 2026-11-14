@@ -481,31 +481,32 @@ void main() {
     expect(find.byType(SendPage), findsOneWidget);
   });
 
-  testWidgets('broadcast failure shows friendly snackbar and stays on SendPage', (
-    tester,
-  ) async {
-    final fake = _SendFlowFake(failBroadcast: true);
-    final container = await createContainer(
-      draftBuilder: fake.build,
-      blockchainClientFactory: (_) => _FakeBlockchainClient(),
-    );
+  testWidgets(
+    'broadcast failure shows friendly snackbar and stays on SendPage',
+    (tester) async {
+      final fake = _SendFlowFake(failBroadcast: true);
+      final container = await createContainer(
+        draftBuilder: fake.build,
+        blockchainClientFactory: (_) => _FakeBlockchainClient(),
+      );
 
-    await pumpSendPage(tester, container);
-    await fillSendForm(tester);
-    await tapReview(tester);
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'Confirm'));
-    await tester.pumpAndSettle();
+      await pumpSendPage(tester, container);
+      await fillSendForm(tester);
+      await tapReview(tester);
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Confirm'));
+      await tester.pumpAndSettle();
 
-    expect(fake.broadcastCount, 1);
-    expect(
-      find.text(
-        'Could not broadcast transaction. Check your connection and try again.',
-      ),
-      findsOneWidget,
-    );
-    expect(find.byType(SendPage), findsOneWidget);
-  });
+      expect(fake.broadcastCount, 1);
+      expect(
+        find.text(
+          'Could not broadcast transaction. Check your connection and try again.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byType(SendPage), findsOneWidget);
+    },
+  );
 }
 
 final class _SendFlowFake {

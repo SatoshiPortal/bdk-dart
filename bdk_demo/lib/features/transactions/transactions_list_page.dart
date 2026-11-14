@@ -93,8 +93,7 @@ class _TransactionsBody extends StatelessWidget {
             const WalletStateCard(
               icon: Icons.history_toggle_off,
               title: 'No transactions yet',
-              message:
-                  'The active wallet has no transactions yet. Sync the wallet or receive funds to populate history.',
+              message: 'The active wallet has no transactions yet. Sync the wallet or receive funds to populate history.',
             )
           else
             Card(

@@ -3,6 +3,7 @@ import 'package:bdk_demo/services/wallet_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:bdk_dart/bdk.dart';
 import 'package:uuid/uuid.dart';
+
 import 'settings_providers.dart';
 
 final walletServiceProvider = Provider<WalletService>((ref) {

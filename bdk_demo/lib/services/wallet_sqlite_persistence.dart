@@ -1,16 +1,17 @@
 import 'package:bdk_dart/bdk.dart';
 import 'package:bdk_demo/core/constants/app_constants.dart';
 
-typedef SqlitePersistRunner =
-    Future<bool> Function(Wallet wallet, Persister persister);
+typedef SqlitePersistRunner = Future<bool> Function(
+  Wallet wallet,
+  Persister persister,
+);
 
-typedef SqliteLoadRunner =
-    Wallet Function({
-      required Descriptor descriptor,
-      required Descriptor changeDescriptor,
-      required Persister persister,
-      required int lookahead,
-    });
+typedef SqliteLoadRunner = Wallet Function({
+  required Descriptor descriptor,
+  required Descriptor changeDescriptor,
+  required Persister persister,
+  required int lookahead,
+});
 
 Future<void> persistWalletSqliteWithReopenVerify({
   required Wallet wallet,

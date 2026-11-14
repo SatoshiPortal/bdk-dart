@@ -112,8 +112,7 @@ void main() {
         walletId: 'wallet-a',
         source: _FakeTransactionHistorySource([
           const TransactionHistoryRecord(
-            txid:
-                '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd',
+            txid: '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd',
             sent: 1200,
             received: 42000,
             position: ConfirmedTransactionPosition(
@@ -122,8 +121,7 @@ void main() {
             ),
           ),
           const TransactionHistoryRecord(
-            txid:
-                'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+            txid: 'abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
             sent: 1600,
             received: 0,
             position: UnconfirmedTransactionPosition(),
@@ -147,8 +145,7 @@ void main() {
         walletId: 'wallet-a',
         source: _FakeTransactionHistorySource([
           const TransactionHistoryRecord(
-            txid:
-                '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd',
+            txid: '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcd',
             sent: 0,
             received: 42000,
             position: ConfirmedTransactionPosition(

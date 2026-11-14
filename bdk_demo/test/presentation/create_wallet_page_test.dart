@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:bdk_demo/core/router/app_router.dart';
 import 'package:bdk_demo/core/utils/wallet_storage_paths.dart';
 import 'package:bdk_demo/features/wallet_setup/create_wallet_page.dart';

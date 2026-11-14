@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+
 import 'package:bdk_dart/bdk.dart';
 import 'package:bdk_demo/core/utils/wallet_storage_paths.dart';
 import 'package:bdk_demo/models/wallet_record.dart';
@@ -108,49 +109,44 @@ void main() {
       },
     );
 
-    test(
-      'idle -> syncing -> synced and balance snapshot comes from reloaded wallet',
-      () async {
-        final container = await _createContainer([
-          walletSyncJobRunnerProvider.overrideWithValue((
-            WalletSyncRequest req,
-          ) async {
-            return WalletSyncResult.success(
-              walletId: req.walletId,
-              performedFullScan: true,
-            );
-          }),
-        ]);
-        final storage = container.read(storageServiceProvider);
-        final walletService = container.read(walletServiceProvider);
+    test('idle -> syncing -> synced and balance snapshot comes from reloaded wallet', () async {
+      final container = await _createContainer([
+        walletSyncJobRunnerProvider.overrideWithValue((
+          WalletSyncRequest req,
+        ) async {
+          return WalletSyncResult.success(
+            walletId: req.walletId,
+            performedFullScan: true,
+          );
+        }),
+      ]);
+      final storage = container.read(storageServiceProvider);
+      final walletService = container.read(walletServiceProvider);
 
-        final (record, wallet) = await walletService.createWallet(
-          'Sync A',
-          WalletNetwork.testnet,
-          ScriptType.p2wpkh,
-        );
+      final (record, wallet) = await walletService.createWallet(
+        'Sync A',
+        WalletNetwork.testnet,
+        ScriptType.p2wpkh,
+      );
 
-        container.read(walletRecordsProvider.notifier).refresh();
-        container.read(activeWalletRecordProvider.notifier).set(record);
-        container.read(activeWalletProvider.notifier).set(wallet);
+      container.read(walletRecordsProvider.notifier).refresh();
+      container.read(activeWalletRecordProvider.notifier).set(record);
+      container.read(activeWalletProvider.notifier).set(wallet);
 
-        await container
-            .read(syncControllerProvider.notifier)
-            .syncActiveWallet();
+      await container.read(syncControllerProvider.notifier).syncActiveWallet();
 
-        expect(container.read(syncStatusProvider), SyncStatus.synced);
-        final snap = container.read(balanceSnapshotProvider);
-        expect(snap, isNotNull);
-        expect(snap!.walletId, record.id);
-        expect(snap.confirmedSat, 0);
+      expect(container.read(syncStatusProvider), SyncStatus.synced);
+      final snap = container.read(balanceSnapshotProvider);
+      expect(snap, isNotNull);
+      expect(snap!.walletId, record.id);
+      expect(snap.confirmedSat, 0);
 
-        final updated = storage.getWalletRecords().firstWhere(
-          (r) => r.id == record.id,
-        );
-        expect(updated.fullScanCompleted, isTrue);
-        expect(container.read(syncProgressProvider).phase, SyncPhase.upToDate);
-      },
-    );
+      final updated = storage.getWalletRecords().firstWhere(
+        (r) => r.id == record.id,
+      );
+      expect(updated.fullScanCompleted, isTrue);
+      expect(container.read(syncProgressProvider).phase, SyncPhase.upToDate);
+    });
 
     test('advances sync progress phases during sync', () async {
       final gate = Completer<void>();

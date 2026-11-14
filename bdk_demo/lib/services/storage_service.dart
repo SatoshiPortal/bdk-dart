@@ -1,4 +1,5 @@
 import 'dart:convert';
+
 import 'package:bdk_demo/models/wallet_record.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,10 +21,8 @@ class StorageService {
   final SharedPreferences _prefs;
   final FlutterSecureStorage _secure;
 
-  StorageService({
-    required this._prefs,
-    FlutterSecureStorage? secure,
-  }) : _secure = secure ?? const FlutterSecureStorage();
+  StorageService({required this._prefs, FlutterSecureStorage? secure})
+    : _secure = secure ?? const FlutterSecureStorage();
 
   bool getIntroDone() => _prefs.getBool(_PrefKeys.introDone) ?? false;
 

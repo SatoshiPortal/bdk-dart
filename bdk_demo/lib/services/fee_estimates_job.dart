@@ -1,4 +1,5 @@
 import 'dart:isolate';
+
 import 'package:bdk_dart/bdk.dart';
 import 'package:bdk_demo/core/constants/app_constants.dart';
 import 'package:bdk_demo/services/blockchain_service.dart';
@@ -15,8 +16,9 @@ class FeeEstimatesRequest {
   final int timeoutSeconds;
 }
 
-typedef FeeEstimatesJobRunner =
-    Future<Map<int, double>> Function(FeeEstimatesRequest request);
+typedef FeeEstimatesJobRunner = Future<Map<int, double>> Function(
+  FeeEstimatesRequest request,
+);
 
 Future<Map<int, double>> defaultFeeEstimatesJobRunner(
   FeeEstimatesRequest request,

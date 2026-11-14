@@ -26,8 +26,7 @@ class ReceivePage extends ConsumerWidget {
             ? const WalletStateCard(
                 icon: Icons.account_balance_wallet_outlined,
                 title: 'No active wallet',
-                message:
-                    'Create or load a wallet before generating a receive address.',
+                message: 'Create or load a wallet before generating a receive address.',
                 centered: true,
               )
             : ListView(
@@ -130,8 +129,7 @@ class _ReceiveAddressCard extends ConsumerWidget {
               const WalletStateCard(
                 icon: Icons.qr_code_2,
                 title: 'No receive address yet',
-                message:
-                    'Generate a new address when you are ready to receive funds.',
+                message: 'Generate a new address when you are ready to receive funds.',
               )
             else
               const SizedBox.shrink(),

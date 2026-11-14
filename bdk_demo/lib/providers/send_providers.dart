@@ -6,8 +6,9 @@ import 'package:bdk_demo/services/blockchain_service.dart';
 import 'package:bdk_demo/services/fee_estimates_job.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-typedef BlockchainClientFactory =
-    BlockchainClient Function(WalletNetwork network);
+typedef BlockchainClientFactory = BlockchainClient Function(
+  WalletNetwork network,
+);
 
 final blockchainClientFactoryProvider = Provider<BlockchainClientFactory>(
   (ref) => (network) {
@@ -27,14 +28,13 @@ class SendTransactionDraft {
   final Future<String> Function(BlockchainClient client) broadcast;
 }
 
-typedef SendTransactionDraftBuilder =
-    Future<SendTransactionDraft> Function({
-      required WalletRecord record,
-      required Wallet wallet,
-      required String recipientAddress,
-      required int amountSat,
-      required int feeRateSatPerVb,
-    });
+typedef SendTransactionDraftBuilder = Future<SendTransactionDraft> Function({
+  required WalletRecord record,
+  required Wallet wallet,
+  required String recipientAddress,
+  required int amountSat,
+  required int feeRateSatPerVb,
+});
 
 final sendTransactionDraftBuilderProvider =
     Provider<SendTransactionDraftBuilder>((ref) {

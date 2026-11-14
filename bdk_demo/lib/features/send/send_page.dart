@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+
 import 'package:bdk_demo/core/router/app_router.dart';
 import 'package:bdk_demo/features/shared/widgets/secondary_app_bar.dart';
 import 'package:bdk_demo/features/shared/widgets/wallet_ui_helpers.dart';
@@ -75,9 +76,8 @@ class _SendPageState extends ConsumerState<SendPage> {
                   ],
                   Text(
                     'Send bitcoin',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -417,9 +417,8 @@ class _SendPageState extends ConsumerState<SendPage> {
 
   void _showSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -466,9 +465,8 @@ class _FeeSuggestions extends StatelessWidget {
           children: [
             Text(
               'Fee suggestions',
-              style: Theme.of(
-                context,
-              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
+              style: Theme.of(context).textTheme.titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Wrap(

@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:bdk_dart/bdk.dart' as bdk;
 import 'package:bdk_demo/features/transactions/models/transaction_history_item.dart';
 import 'package:bdk_demo/features/transactions/transactions_controller.dart';
@@ -214,238 +215,218 @@ void main() {
       expect(state.errorMessage, 'Refresh failed');
     });
 
-    test(
-      'a refresh requested while another transaction load is running is queued rather than discarded',
-      () async {
-        final repo = CountingTransactionsRepository(transactions: []);
+    test('a refresh requested while another transaction load is running is queued rather than discarded', () async {
+      final repo = CountingTransactionsRepository(transactions: []);
 
-        final container = createContainer([
-          transactionsRepositoryProvider.overrideWith((ref) => repo),
-        ]);
-        keepControllerAlive(container, 'wallet-a');
+      final container = createContainer([
+        transactionsRepositoryProvider.overrideWith((ref) => repo),
+      ]);
+      keepControllerAlive(container, 'wallet-a');
 
-        final notifier = container.read(
-          transactionsControllerProvider('wallet-a').notifier,
-        );
+      final notifier = container.read(
+        transactionsControllerProvider('wallet-a').notifier,
+      );
 
-        final load1 = notifier.loadTransactions();
-        final load2 = notifier.loadTransactions(isBackgroundRefresh: true);
+      final load1 = notifier.loadTransactions();
+      final load2 = notifier.loadTransactions(isBackgroundRefresh: true);
 
-        await Future.wait([load1, load2]);
-        expect(repo.loadCount, 2);
-      },
-    );
+      await Future.wait([load1, load2]);
+      expect(repo.loadCount, 2);
+    });
 
-    test(
-      'switching the logical active wallet ID from A to B clears A\'s transaction list',
-      () async {
-        final recordA = createRecord('wallet-a', 'Wallet A');
-        final recordB = createRecord('wallet-b', 'Wallet B');
+    test('switching the logical active wallet ID from A to B clears A\'s transaction list', () async {
+      final recordA = createRecord('wallet-a', 'Wallet A');
+      final recordB = createRecord('wallet-b', 'Wallet B');
 
-        final txsA = [createTx('tx-a', 10000)];
-        final txsB = [createTx('tx-b', 20000)];
+      final txsA = [createTx('tx-a', 10000)];
+      final txsB = [createTx('tx-b', 20000)];
 
-        final container = createContainer([
-          transactionsRepositoryProvider.overrideWith((ref) {
-            final activeId = ref.watch(activeWalletIdProvider);
-            return FakeTransactionsRepository(
-              transactions: activeId == 'wallet-a' ? txsA : txsB,
-            );
-          }),
-        ], overrideWalletBinding: false);
+      final container = createContainer([
+        transactionsRepositoryProvider.overrideWith((ref) {
+          final activeId = ref.watch(activeWalletIdProvider);
+          return FakeTransactionsRepository(
+            transactions: activeId == 'wallet-a' ? txsA : txsB,
+          );
+        }),
+      ], overrideWalletBinding: false);
 
-        container.read(activeWalletRecordProvider.notifier).set(recordA);
-        container.read(activeWalletProvider.notifier).set(FakeWallet());
-        final walletAId = container.read(activeWalletIdProvider);
-        keepControllerAlive(container, walletAId);
+      container.read(activeWalletRecordProvider.notifier).set(recordA);
+      container.read(activeWalletProvider.notifier).set(FakeWallet());
+      final walletAId = container.read(activeWalletIdProvider);
+      keepControllerAlive(container, walletAId);
 
-        await container
-            .read(transactionsControllerProvider(walletAId).notifier)
-            .loadTransactions();
-        expect(
-          container.read(transactionsControllerProvider(walletAId)).status,
-          TransactionsLoadState.success,
-        );
-        expect(
-          container
-              .read(transactionsControllerProvider(walletAId))
-              .transactions
-              .first
-              .txid,
-          'tx-a',
-        );
+      await container
+          .read(transactionsControllerProvider(walletAId).notifier)
+          .loadTransactions();
+      expect(
+        container.read(transactionsControllerProvider(walletAId)).status,
+        TransactionsLoadState.success,
+      );
+      expect(
+        container
+            .read(transactionsControllerProvider(walletAId))
+            .transactions
+            .first
+            .txid,
+        'tx-a',
+      );
 
-        container.read(activeWalletRecordProvider.notifier).set(recordB);
-        container.read(activeWalletProvider.notifier).set(FakeWallet());
-        final walletBId = container.read(activeWalletIdProvider);
-        keepControllerAlive(container, walletBId);
+      container.read(activeWalletRecordProvider.notifier).set(recordB);
+      container.read(activeWalletProvider.notifier).set(FakeWallet());
+      final walletBId = container.read(activeWalletIdProvider);
+      keepControllerAlive(container, walletBId);
 
-        final stateAfterSwitch = container.read(
-          transactionsControllerProvider(walletBId),
-        );
-        expect(stateAfterSwitch.transactions, isEmpty);
-      },
-    );
+      final stateAfterSwitch = container.read(
+        transactionsControllerProvider(walletBId),
+      );
+      expect(stateAfterSwitch.transactions, isEmpty);
+    });
 
-    test(
-      'an asynchronous result started for wallet A is ignored if the active wallet changes to B before it completes',
-      () async {
-        final recordA = createRecord('wallet-a', 'Wallet A');
-        final recordB = createRecord('wallet-b', 'Wallet B');
+    test('an asynchronous result started for wallet A is ignored if the active wallet changes to B before it completes', () async {
+      final recordA = createRecord('wallet-a', 'Wallet A');
+      final recordB = createRecord('wallet-b', 'Wallet B');
 
-        final completer = Completer<List<TransactionHistoryItem>>();
-        final delayedRepo = DelayedTransactionsRepository(completer.future);
+      final completer = Completer<List<TransactionHistoryItem>>();
+      final delayedRepo = DelayedTransactionsRepository(completer.future);
 
-        final container = createContainer([
-          transactionsRepositoryProvider.overrideWithValue(delayedRepo),
-        ], overrideWalletBinding: false);
+      final container = createContainer([
+        transactionsRepositoryProvider.overrideWithValue(delayedRepo),
+      ], overrideWalletBinding: false);
 
-        container.read(activeWalletRecordProvider.notifier).set(recordA);
-        container.read(activeWalletProvider.notifier).set(FakeWallet());
-        final walletAId = container.read(activeWalletIdProvider);
-        final walletASubscription = container.listen(
-          transactionsControllerProvider(walletAId),
-          (_, __) {},
-        );
+      container.read(activeWalletRecordProvider.notifier).set(recordA);
+      container.read(activeWalletProvider.notifier).set(FakeWallet());
+      final walletAId = container.read(activeWalletIdProvider);
+      final walletASubscription = container.listen(
+        transactionsControllerProvider(walletAId),
+        (_, __) {},
+      );
 
-        final future = container
-            .read(transactionsControllerProvider(walletAId).notifier)
-            .loadTransactions();
+      final future = container
+          .read(transactionsControllerProvider(walletAId).notifier)
+          .loadTransactions();
 
-        container.read(activeWalletRecordProvider.notifier).set(recordB);
-        container.read(activeWalletProvider.notifier).set(FakeWallet());
-        final walletBId = container.read(activeWalletIdProvider);
-        keepControllerAlive(container, walletBId);
-        walletASubscription.close();
-        await container.pump();
+      container.read(activeWalletRecordProvider.notifier).set(recordB);
+      container.read(activeWalletProvider.notifier).set(FakeWallet());
+      final walletBId = container.read(activeWalletIdProvider);
+      keepControllerAlive(container, walletBId);
+      walletASubscription.close();
+      await container.pump();
 
-        completer.complete([createTx('tx-a', 10000)]);
-        await future;
+      completer.complete([createTx('tx-a', 10000)]);
+      await future;
 
-        final finalState = container.read(
-          transactionsControllerProvider(walletBId),
-        );
-        expect(finalState.transactions, isEmpty);
-      },
-    );
+      final finalState = container.read(
+        transactionsControllerProvider(walletBId),
+      );
+      expect(finalState.transactions, isEmpty);
+    });
 
-    test(
-      'replacing the FFI Wallet object while retaining the same wallet record ID refreshes data',
-      () async {
-        final recordA = createRecord('wallet-a', 'Wallet A');
+    test('replacing the FFI Wallet object while retaining the same wallet record ID refreshes data', () async {
+      final recordA = createRecord('wallet-a', 'Wallet A');
 
-        final wallet1 = FakeWallet();
-        final wallet2 = FakeWallet();
+      final wallet1 = FakeWallet();
+      final wallet2 = FakeWallet();
 
-        final repo1 = CountingTransactionsRepository(
-          transactions: [createTx('tx-a', 10000)],
-        );
-        final repo2 = CountingTransactionsRepository(
-          transactions: [createTx('tx-b', 20000)],
-        );
+      final repo1 = CountingTransactionsRepository(
+        transactions: [createTx('tx-a', 10000)],
+      );
+      final repo2 = CountingTransactionsRepository(
+        transactions: [createTx('tx-b', 20000)],
+      );
 
-        final container = createContainer([
-          transactionsRepositoryProvider.overrideWith((ref) {
-            final wallet = ref.watch(activeWalletProvider);
-            return identical(wallet, wallet1) ? repo1 : repo2;
-          }),
-        ], overrideWalletBinding: false);
+      final container = createContainer([
+        transactionsRepositoryProvider.overrideWith((ref) {
+          final wallet = ref.watch(activeWalletProvider);
+          return identical(wallet, wallet1) ? repo1 : repo2;
+        }),
+      ], overrideWalletBinding: false);
 
-        container.read(activeWalletRecordProvider.notifier).set(recordA);
-        container.read(activeWalletProvider.notifier).set(wallet1);
-        final walletAId = container.read(activeWalletIdProvider);
-        keepControllerAlive(container, walletAId);
+      container.read(activeWalletRecordProvider.notifier).set(recordA);
+      container.read(activeWalletProvider.notifier).set(wallet1);
+      final walletAId = container.read(activeWalletIdProvider);
+      keepControllerAlive(container, walletAId);
 
-        await container
-            .read(transactionsControllerProvider(walletAId).notifier)
-            .loadTransactions();
-        expect(
-          container
-              .read(transactionsControllerProvider(walletAId))
-              .transactions
-              .single
-              .txid,
-          'tx-a',
-        );
+      await container
+          .read(transactionsControllerProvider(walletAId).notifier)
+          .loadTransactions();
+      expect(
+        container
+            .read(transactionsControllerProvider(walletAId))
+            .transactions
+            .single
+            .txid,
+        'tx-a',
+      );
 
-        container.read(activeWalletProvider.notifier).set(wallet2);
-        await container.pump();
-        await container.pump();
+      container.read(activeWalletProvider.notifier).set(wallet2);
+      await container.pump();
+      await container.pump();
 
-        expect(repo2.loadCount, greaterThan(0));
-        expect(
-          container
-              .read(transactionsControllerProvider(walletAId))
-              .transactions
-              .single
-              .txid,
-          'tx-b',
-        );
-      },
-    );
+      expect(repo2.loadCount, greaterThan(0));
+      expect(
+        container
+            .read(transactionsControllerProvider(walletAId))
+            .transactions
+            .single
+            .txid,
+        'tx-b',
+      );
+    });
 
-    test(
-      'clearing the FFI wallet clears transaction rows while the record remains active',
-      () async {
-        final record = createRecord('wallet-a', 'Wallet A');
-        final wallet = FakeWallet();
-        final repo = CountingTransactionsRepository(
-          transactions: [createTx('tx-a', 10000)],
-        );
-        final container = createContainer([
-          transactionsRepositoryProvider.overrideWithValue(repo),
-        ], overrideWalletBinding: false);
+    test('clearing the FFI wallet clears transaction rows while the record remains active', () async {
+      final record = createRecord('wallet-a', 'Wallet A');
+      final wallet = FakeWallet();
+      final repo = CountingTransactionsRepository(
+        transactions: [createTx('tx-a', 10000)],
+      );
+      final container = createContainer([
+        transactionsRepositoryProvider.overrideWithValue(repo),
+      ], overrideWalletBinding: false);
 
-        container.read(activeWalletRecordProvider.notifier).set(record);
-        container.read(activeWalletProvider.notifier).set(wallet);
-        keepControllerAlive(container, record.id);
+      container.read(activeWalletRecordProvider.notifier).set(record);
+      container.read(activeWalletProvider.notifier).set(wallet);
+      keepControllerAlive(container, record.id);
 
-        await container
-            .read(transactionsControllerProvider(record.id).notifier)
-            .loadTransactions();
-        expect(
-          container
-              .read(transactionsControllerProvider(record.id))
-              .transactions,
-          isNotEmpty,
-        );
+      await container
+          .read(transactionsControllerProvider(record.id).notifier)
+          .loadTransactions();
+      expect(
+        container.read(transactionsControllerProvider(record.id)).transactions,
+        isNotEmpty,
+      );
 
-        container.read(activeWalletProvider.notifier).clear();
-        await container.pump();
+      container.read(activeWalletProvider.notifier).clear();
+      await container.pump();
 
-        final state = container.read(transactionsControllerProvider(record.id));
-        expect(state.status, TransactionsLoadState.noWallet);
-        expect(state.transactions, isEmpty);
-      },
-    );
+      final state = container.read(transactionsControllerProvider(record.id));
+      expect(state.status, TransactionsLoadState.noWallet);
+      expect(state.transactions, isEmpty);
+    });
 
-    test(
-      'a stale load failure cannot replace no-wallet state after the wallet is cleared',
-      () async {
-        final record = createRecord('wallet-a', 'Wallet A');
-        final completer = Completer<List<TransactionHistoryItem>>();
-        final container = createContainer([
-          transactionsRepositoryProvider.overrideWithValue(
-            DelayedTransactionsRepository(completer.future),
-          ),
-        ], overrideWalletBinding: false);
+    test('a stale load failure cannot replace no-wallet state after the wallet is cleared', () async {
+      final record = createRecord('wallet-a', 'Wallet A');
+      final completer = Completer<List<TransactionHistoryItem>>();
+      final container = createContainer([
+        transactionsRepositoryProvider.overrideWithValue(
+          DelayedTransactionsRepository(completer.future),
+        ),
+      ], overrideWalletBinding: false);
 
-        container.read(activeWalletRecordProvider.notifier).set(record);
-        container.read(activeWalletProvider.notifier).set(FakeWallet());
-        keepControllerAlive(container, record.id);
-        final load = container
-            .read(transactionsControllerProvider(record.id).notifier)
-            .loadTransactions();
+      container.read(activeWalletRecordProvider.notifier).set(record);
+      container.read(activeWalletProvider.notifier).set(FakeWallet());
+      keepControllerAlive(container, record.id);
+      final load = container
+          .read(transactionsControllerProvider(record.id).notifier)
+          .loadTransactions();
 
-        container.read(activeWalletProvider.notifier).clear();
-        completer.completeError(Exception('stale failure'));
-        await load;
+      container.read(activeWalletProvider.notifier).clear();
+      completer.completeError(Exception('stale failure'));
+      await load;
 
-        final state = container.read(transactionsControllerProvider(record.id));
-        expect(state.status, TransactionsLoadState.noWallet);
-        expect(state.transactions, isEmpty);
-      },
-    );
+      final state = container.read(transactionsControllerProvider(record.id));
+      expect(state.status, TransactionsLoadState.noWallet);
+      expect(state.transactions, isEmpty);
+    });
 
     test(
       'wallet B data cannot update the controller keyed to wallet A',
@@ -486,46 +467,39 @@ void main() {
       },
     );
 
-    test(
-      'a transaction detail from wallet A is not reused after switching to wallet B',
-      () async {
-        final recordA = createRecord('wallet-a', 'Wallet A');
-        final recordB = createRecord('wallet-b', 'Wallet B');
+    test('a transaction detail from wallet A is not reused after switching to wallet B', () async {
+      final recordA = createRecord('wallet-a', 'Wallet A');
+      final recordB = createRecord('wallet-b', 'Wallet B');
 
-        final txA = createTx('tx-123', 10000);
-        final txB = createTx('tx-123', 20000);
+      final txA = createTx('tx-123', 10000);
+      final txB = createTx('tx-123', 20000);
 
-        final container = createContainer([
-          transactionsRepositoryProvider.overrideWith((ref) {
-            final activeId = ref.watch(activeWalletIdProvider);
-            return FakeTransactionsRepository(
-              transactions: activeId == 'wallet-a' ? [txA] : [txB],
-            );
-          }),
-        ], overrideWalletBinding: false);
+      final container = createContainer([
+        transactionsRepositoryProvider.overrideWith((ref) {
+          final activeId = ref.watch(activeWalletIdProvider);
+          return FakeTransactionsRepository(
+            transactions: activeId == 'wallet-a' ? [txA] : [txB],
+          );
+        }),
+      ], overrideWalletBinding: false);
 
-        container.read(activeWalletRecordProvider.notifier).set(recordA);
-        container.read(activeWalletProvider.notifier).set(FakeWallet());
+      container.read(activeWalletRecordProvider.notifier).set(recordA);
+      container.read(activeWalletProvider.notifier).set(FakeWallet());
 
-        final detailA = await container.read(
-          transactionDetailsProvider((
-            walletId: 'wallet-a',
-            txid: 'tx-123',
-          )).future,
-        );
-        expect(detailA?.netAmount, 10000);
+      final detailA = await container.read(
+        transactionDetailsProvider((walletId: 'wallet-a', txid: 'tx-123'))
+            .future,
+      );
+      expect(detailA?.netAmount, 10000);
 
-        container.read(activeWalletRecordProvider.notifier).set(recordB);
-        container.read(activeWalletProvider.notifier).set(FakeWallet());
+      container.read(activeWalletRecordProvider.notifier).set(recordB);
+      container.read(activeWalletProvider.notifier).set(FakeWallet());
 
-        final detailB = await container.read(
-          transactionDetailsProvider((
-            walletId: 'wallet-b',
-            txid: 'tx-123',
-          )).future,
-        );
-        expect(detailB?.netAmount, 20000);
-      },
-    );
+      final detailB = await container.read(
+        transactionDetailsProvider((walletId: 'wallet-b', txid: 'tx-123'))
+            .future,
+      );
+      expect(detailB?.netAmount, 20000);
+    });
   });
 }

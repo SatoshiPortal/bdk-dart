@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:isolate';
+
 import 'package:bdk_dart/bdk.dart';
 import 'package:bdk_demo/core/constants/app_constants.dart';
 import 'package:bdk_demo/models/wallet_record.dart';
@@ -70,14 +71,14 @@ class WalletSyncResult {
   final WalletSyncFailureKind? failureKind;
 }
 
-typedef WalletSyncJobRunner =
-    Future<WalletSyncResult> Function(WalletSyncRequest request);
-typedef WalletSyncBackendFactory =
-    WalletSyncBackend Function(
-      WalletNetwork walletNetwork,
-      EndpointConfig endpoint,
-      int syncTimeoutSeconds,
-    );
+typedef WalletSyncJobRunner = Future<WalletSyncResult> Function(
+  WalletSyncRequest request,
+);
+typedef WalletSyncBackendFactory = WalletSyncBackend Function(
+  WalletNetwork walletNetwork,
+  EndpointConfig endpoint,
+  int syncTimeoutSeconds,
+);
 
 Future<WalletSyncResult> defaultWalletSyncJobRunner(WalletSyncRequest request) {
   return Isolate.run(() async {

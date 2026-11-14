@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:bdk_dart/bdk.dart';
 import 'package:bdk_demo/core/utils/wallet_storage_paths.dart';
 import 'package:bdk_demo/models/wallet_record.dart';
@@ -201,13 +202,12 @@ void main() {
           storage: storage,
           uuid: const Uuid(),
           persistRunner: (wallet, persister) async => false,
-          walletLoadRunner:
-              ({
-                required descriptor,
-                required changeDescriptor,
-                required persister,
-                required lookahead,
-              }) => throw StateError('Forced verification load failure.'),
+          walletLoadRunner: ({
+            required descriptor,
+            required changeDescriptor,
+            required persister,
+            required lookahead,
+          }) => throw StateError('Forced verification load failure.'),
         );
 
         await expectLater(
@@ -375,50 +375,46 @@ void main() {
       },
     );
 
-    test(
-      'ambiguous load failure preserves existing SQLite data and does not reseed',
-      () async {
-        final (record, originalWallet) = await walletService.createWallet(
-          'Preserve Existing Db',
-          WalletNetwork.testnet,
-          ScriptType.p2wpkh,
-        );
-        originalWallet.dispose();
+    test('ambiguous load failure preserves existing SQLite data and does not reseed', () async {
+      final (record, originalWallet) = await walletService.createWallet(
+        'Preserve Existing Db',
+        WalletNetwork.testnet,
+        ScriptType.p2wpkh,
+      );
+      originalWallet.dispose();
 
-        final sqlitePath = await WalletStoragePaths.sqlitePathForWallet(
-          record.id,
-        );
-        final originalFile = File(sqlitePath);
-        expect(originalFile.existsSync(), isTrue);
-        final originalBytes = await originalFile.readAsBytes();
+      final sqlitePath = await WalletStoragePaths.sqlitePathForWallet(
+        record.id,
+      );
+      final originalFile = File(sqlitePath);
+      expect(originalFile.existsSync(), isTrue);
+      final originalBytes = await originalFile.readAsBytes();
 
-        final service = WalletService(
-          storage: storageService,
-          uuid: const Uuid(),
-          walletLoadRunner:
-              ({
-                required descriptor,
-                required changeDescriptor,
-                required persister,
-                required lookahead,
-              }) => throw StateError('Forced load failure for test.'),
-        );
+      final service = WalletService(
+        storage: storageService,
+        uuid: const Uuid(),
+        walletLoadRunner: ({
+          required descriptor,
+          required changeDescriptor,
+          required persister,
+          required lookahead,
+        }) => throw StateError('Forced load failure for test.'),
+      );
 
-        await expectLater(
-          () => service.loadWalletFromRecord(record),
-          throwsA(
-            isA<StateError>().having(
-              (e) => e.message,
-              'message',
-              contains('Preserving the current DB'),
-            ),
+      await expectLater(
+        () => service.loadWalletFromRecord(record),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            contains('Preserving the current DB'),
           ),
-        );
+        ),
+      );
 
-        expect(originalFile.existsSync(), isTrue);
-        expect(await originalFile.readAsBytes(), originalBytes);
-      },
-    );
+      expect(originalFile.existsSync(), isTrue);
+      expect(await originalFile.readAsBytes(), originalBytes);
+    });
 
     test('missing secrets throws StateError', () async {
       final orphanRecord = WalletRecord(
