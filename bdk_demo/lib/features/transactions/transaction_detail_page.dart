@@ -6,7 +6,7 @@ import 'package:bdk_demo/features/transactions/models/transaction_history_item.d
 import 'package:bdk_demo/features/transactions/transactions_controller.dart';
 import 'package:bdk_demo/models/currency_unit.dart';
 import 'package:bdk_demo/providers/wallet_providers.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class TransactionDetailPage extends ConsumerWidget {
