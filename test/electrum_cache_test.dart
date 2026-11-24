@@ -7,6 +7,8 @@ import 'dart:typed_data';
 import 'package:bdk_dart/bdk.dart';
 import 'package:test/test.dart';
 
+import 'test_constants.dart';
+
 // Version 2, one input spending 00…00:0, one 1 000 sat P2WPKH output.
 final _rawTx = Uint8List.fromList([
   2, 0, 0, 0, //
@@ -15,8 +17,8 @@ final _rawTx = Uint8List.fromList([
   0, 0, 0, 0,
 ]);
 
-/// Loopback Electrum server answering version negotiation and raw
-/// transaction requests. It runs in its own isolate because the client's
+/// Loopback Electrum server reporting one unconfirmed transaction. It runs
+/// in its own isolate because the client's
 /// calls block the calling isolate until the server replies.
 class _ElectrumStub {
   final Isolate _isolate;
@@ -46,11 +48,27 @@ class _ElectrumStub {
   static Future<void> _serve(SendPort ready) async {
     var transactionGets = 0;
     final hex = _rawTx.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final tx = Transaction(transactionBytes: _rawTx);
+    final id = tx.computeTxid();
+    final txid = id.toString();
+    id.dispose();
+    tx.dispose();
+    const genesis =
+        '01000000'
+        '0000000000000000000000000000000000000000000000000000000000000000'
+        '3ba3edfd7a7b12b27ac72c3e67768f617fc81bc3888a51323a9fb8aa4b1e5e4a'
+        'dae5494dffff001d1aa4ae18';
     Object answer(Object? request) {
       if (request is List) return request.map(answer).toList();
       final call = request as Map<String, dynamic>;
       final result = switch (call['method']) {
         'server.version' => ['stub', '1.4'],
+        'blockchain.headers.subscribe' => {'height': 0, 'hex': genesis},
+        'blockchain.block.header' => genesis,
+        'blockchain.block.headers' => {'count': 1, 'hex': genesis, 'max': 2016},
+        'blockchain.scripthash.get_history' => [
+          {'tx_hash': txid, 'height': 0},
+        ],
         'blockchain.transaction.get' => (() {
           transactionGets++;
           return hex;
@@ -104,7 +122,7 @@ void main() {
 
     test('populateTxCache lets fetchTx answer without a request', () async {
       final client = _client(stub);
-      client.populateTxCache(transactions: [tx]);
+      client.populateTxCache(txs: [tx]);
       final fetched = client.fetchTx(txid: tx.computeTxid());
       expect(fetched.computeTxid().toString(), tx.computeTxid().toString());
       expect(await stub.transactionGets(), 0);
@@ -128,5 +146,53 @@ void main() {
       );
       expect(await stub.transactionGets(), 0);
     });
+
+    test(
+      'a targeted update exposes observations before wallet apply',
+      () async {
+        final descriptor = buildBip84Descriptor(Network.testnet);
+        addTearDown(descriptor.dispose);
+        final change = buildBip84ChangeDescriptor(Network.testnet);
+        addTearDown(change.dispose);
+        final persister = Persister.newInMemory();
+        addTearDown(persister.dispose);
+        final wallet = Wallet(
+          descriptor: descriptor,
+          changeDescriptor: change,
+          network: Network.testnet,
+          persister: persister,
+          lookahead: defaultLookahead,
+        );
+        addTearDown(wallet.dispose);
+        final address = wallet.revealNextAddress(
+          keychain: KeychainKind.external_,
+        );
+        addTearDown(address.address.dispose);
+        final builder = wallet.startSyncWithSpkIndices(
+          externalIndices: [address.index],
+          internalIndices: [],
+        );
+        addTearDown(builder.dispose);
+        final request = builder.build();
+        addTearDown(request.dispose);
+        final client = _client(stub);
+        addTearDown(client.dispose);
+        client.populateTxCache(txs: [tx]);
+        final update = client.sync_(
+          request: request,
+          batchSize: 10,
+          fetchPrevTxouts: false,
+        );
+        addTearDown(update.dispose);
+        final id = tx.computeTxid();
+        addTearDown(id.dispose);
+
+        final observations = update.transactionObservations();
+        expect(observations.unconfirmed, [id.toString()]);
+        expect(observations.anchored, isEmpty);
+        expect(observations.listed, [id.toString()]);
+        expect(await stub.transactionGets(), 0);
+      },
+    );
   });
 }

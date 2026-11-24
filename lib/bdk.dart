@@ -1136,6 +1136,65 @@ class FfiConverterProprietaryKey {
   }
 }
 
+class PsbtSignResult {
+  final List<int> signedInputs;
+  final Map<int, InputSignException> errors;
+  PsbtSignResult({required this.signedInputs, required this.errors});
+}
+
+class FfiConverterPsbtSignResult {
+  static PsbtSignResult lift(RustBuffer buf) {
+    return FfiConverterPsbtSignResult.read(buf.asUint8List()).value;
+  }
+
+  static LiftRetVal<PsbtSignResult> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final signedInputs_lifted = FfiConverterSequenceUInt64.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final signedInputs = signedInputs_lifted.value;
+    new_offset += signedInputs_lifted.bytesRead;
+    final errors_lifted = FfiConverterMapUInt64ToInputSignException.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final errors = errors_lifted.value;
+    new_offset += errors_lifted.bytesRead;
+    return LiftRetVal(
+      PsbtSignResult(signedInputs: signedInputs, errors: errors),
+      new_offset - buf.offsetInBytes,
+    );
+  }
+
+  static RustBuffer lower(PsbtSignResult value) {
+    final total_length =
+        FfiConverterSequenceUInt64.allocationSize(value.signedInputs) +
+        FfiConverterMapUInt64ToInputSignException.allocationSize(value.errors) +
+        0;
+    final buf = Uint8List(total_length);
+    write(value, buf);
+    return toRustBuffer(buf);
+  }
+
+  static int write(PsbtSignResult value, Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    new_offset += FfiConverterSequenceUInt64.write(
+      value.signedInputs,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    new_offset += FfiConverterMapUInt64ToInputSignException.write(
+      value.errors,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset - buf.offsetInBytes;
+  }
+
+  static int allocationSize(PsbtSignResult value) {
+    return FfiConverterSequenceUInt64.allocationSize(value.signedInputs) +
+        FfiConverterMapUInt64ToInputSignException.allocationSize(value.errors) +
+        0;
+  }
+}
+
 class TapKeyOrigin {
   final List<String> tapLeafHashes;
   final KeySource keySource;
@@ -2630,6 +2689,69 @@ class FfiConverterEvictedTx {
   }
 }
 
+class FinalizePsbtOutcome {
+  final bool isFinalized;
+  final Map<int, FinalizeInputOutcome> outcomes;
+  FinalizePsbtOutcome({required this.isFinalized, required this.outcomes});
+}
+
+class FfiConverterFinalizePsbtOutcome {
+  static FinalizePsbtOutcome lift(RustBuffer buf) {
+    return FfiConverterFinalizePsbtOutcome.read(buf.asUint8List()).value;
+  }
+
+  static LiftRetVal<FinalizePsbtOutcome> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final isFinalized_lifted = FfiConverterBool.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final isFinalized = isFinalized_lifted.value;
+    new_offset += isFinalized_lifted.bytesRead;
+    final outcomes_lifted = FfiConverterMapUInt64ToFinalizeInputOutcome.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final outcomes = outcomes_lifted.value;
+    new_offset += outcomes_lifted.bytesRead;
+    return LiftRetVal(
+      FinalizePsbtOutcome(isFinalized: isFinalized, outcomes: outcomes),
+      new_offset - buf.offsetInBytes,
+    );
+  }
+
+  static RustBuffer lower(FinalizePsbtOutcome value) {
+    final total_length =
+        FfiConverterBool.allocationSize(value.isFinalized) +
+        FfiConverterMapUInt64ToFinalizeInputOutcome.allocationSize(
+          value.outcomes,
+        ) +
+        0;
+    final buf = Uint8List(total_length);
+    write(value, buf);
+    return toRustBuffer(buf);
+  }
+
+  static int write(FinalizePsbtOutcome value, Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    new_offset += FfiConverterBool.write(
+      value.isFinalized,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    new_offset += FfiConverterMapUInt64ToFinalizeInputOutcome.write(
+      value.outcomes,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset - buf.offsetInBytes;
+  }
+
+  static int allocationSize(FinalizePsbtOutcome value) {
+    return FfiConverterBool.allocationSize(value.isFinalized) +
+        FfiConverterMapUInt64ToFinalizeInputOutcome.allocationSize(
+          value.outcomes,
+        ) +
+        0;
+  }
+}
+
 class IndexerChangeSet {
   final Map<DescriptorId, int> lastRevealed;
   IndexerChangeSet({required this.lastRevealed});
@@ -3891,6 +4013,87 @@ class FfiConverterUnconfirmedTx {
   static int allocationSize(UnconfirmedTx value) {
     return Transaction.allocationSize(value.tx) +
         FfiConverterUInt64.allocationSize(value.lastSeen) +
+        0;
+  }
+}
+
+class UpdateTransactionObservations {
+  final List<String> unconfirmed;
+  final List<String> anchored;
+  final List<String> listed;
+  UpdateTransactionObservations({
+    required this.unconfirmed,
+    required this.anchored,
+    required this.listed,
+  });
+}
+
+class FfiConverterUpdateTransactionObservations {
+  static UpdateTransactionObservations lift(RustBuffer buf) {
+    return FfiConverterUpdateTransactionObservations.read(
+      buf.asUint8List(),
+    ).value;
+  }
+
+  static LiftRetVal<UpdateTransactionObservations> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final unconfirmed_lifted = FfiConverterSequenceString.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final unconfirmed = unconfirmed_lifted.value;
+    new_offset += unconfirmed_lifted.bytesRead;
+    final anchored_lifted = FfiConverterSequenceString.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final anchored = anchored_lifted.value;
+    new_offset += anchored_lifted.bytesRead;
+    final listed_lifted = FfiConverterSequenceString.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final listed = listed_lifted.value;
+    new_offset += listed_lifted.bytesRead;
+    return LiftRetVal(
+      UpdateTransactionObservations(
+        unconfirmed: unconfirmed,
+        anchored: anchored,
+        listed: listed,
+      ),
+      new_offset - buf.offsetInBytes,
+    );
+  }
+
+  static RustBuffer lower(UpdateTransactionObservations value) {
+    final total_length =
+        FfiConverterSequenceString.allocationSize(value.unconfirmed) +
+        FfiConverterSequenceString.allocationSize(value.anchored) +
+        FfiConverterSequenceString.allocationSize(value.listed) +
+        0;
+    final buf = Uint8List(total_length);
+    write(value, buf);
+    return toRustBuffer(buf);
+  }
+
+  static int write(UpdateTransactionObservations value, Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    new_offset += FfiConverterSequenceString.write(
+      value.unconfirmed,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    new_offset += FfiConverterSequenceString.write(
+      value.anchored,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    new_offset += FfiConverterSequenceString.write(
+      value.listed,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset - buf.offsetInBytes;
+  }
+
+  static int allocationSize(UpdateTransactionObservations value) {
+    return FfiConverterSequenceString.allocationSize(value.unconfirmed) +
+        FfiConverterSequenceString.allocationSize(value.anchored) +
+        FfiConverterSequenceString.allocationSize(value.listed) +
         0;
   }
 }
@@ -10559,6 +10762,122 @@ class FeeRateExceptionErrorHandler extends UniffiRustCallStatusErrorHandler {
 final FeeRateExceptionErrorHandler feeRateExceptionErrorHandler =
     FeeRateExceptionErrorHandler();
 
+abstract class FinalizePsbtException implements Exception {
+  RustBuffer lower();
+  int allocationSize();
+  int write(Uint8List buf);
+}
+
+class FfiConverterFinalizePsbtException {
+  static FinalizePsbtException lift(RustBuffer buffer) {
+    return FfiConverterFinalizePsbtException.read(buffer.asUint8List()).value;
+  }
+
+  static LiftRetVal<FinalizePsbtException> read(Uint8List buf) {
+    final index = buf.buffer.asByteData(buf.offsetInBytes).getInt32(0);
+    final subview = Uint8List.view(buf.buffer, buf.offsetInBytes + 4);
+    switch (index) {
+      case 1:
+        final lifted = InputIndexOutOfBoundsFinalizePsbtException.read(subview);
+        return LiftRetVal<FinalizePsbtException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      default:
+        throw UniffiInternalError(
+          UniffiInternalError.unexpectedEnumCase,
+          "Unable to determine enum variant",
+        );
+    }
+  }
+
+  static RustBuffer lower(FinalizePsbtException value) {
+    return value.lower();
+  }
+
+  static int allocationSize(FinalizePsbtException value) {
+    return value.allocationSize();
+  }
+
+  static int write(FinalizePsbtException value, Uint8List buf) {
+    return value.write(buf) - buf.offsetInBytes;
+  }
+}
+
+class InputIndexOutOfBoundsFinalizePsbtException extends FinalizePsbtException {
+  final int index;
+  final int len;
+  InputIndexOutOfBoundsFinalizePsbtException({
+    required int this.index,
+    required int this.len,
+  });
+  InputIndexOutOfBoundsFinalizePsbtException._(int this.index, int this.len);
+  static LiftRetVal<InputIndexOutOfBoundsFinalizePsbtException> read(
+    Uint8List buf,
+  ) {
+    int new_offset = buf.offsetInBytes;
+    final index_lifted = FfiConverterUInt64.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final index = index_lifted.value;
+    new_offset += index_lifted.bytesRead;
+    final len_lifted = FfiConverterUInt64.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final len = len_lifted.value;
+    new_offset += len_lifted.bytesRead;
+    return LiftRetVal(
+      InputIndexOutOfBoundsFinalizePsbtException._(index, len),
+      new_offset,
+    );
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return FfiConverterUInt64.allocationSize(index) +
+        FfiConverterUInt64.allocationSize(len) +
+        4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 1);
+    int new_offset = buf.offsetInBytes + 4;
+    new_offset += FfiConverterUInt64.write(
+      index,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    new_offset += FfiConverterUInt64.write(
+      len,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "InputIndexOutOfBoundsFinalizePsbtException($index, $len)";
+  }
+}
+
+class FinalizePsbtExceptionErrorHandler
+    extends UniffiRustCallStatusErrorHandler {
+  @override
+  Exception lift(RustBuffer errorBuf) {
+    return FfiConverterFinalizePsbtException.lift(errorBuf);
+  }
+}
+
+final FinalizePsbtExceptionErrorHandler finalizePsbtExceptionErrorHandler =
+    FinalizePsbtExceptionErrorHandler();
+
 abstract class FromScriptException implements Exception {
   RustBuffer lower();
   int allocationSize();
@@ -10930,6 +11249,771 @@ class HashParseExceptionErrorHandler extends UniffiRustCallStatusErrorHandler {
 
 final HashParseExceptionErrorHandler hashParseExceptionErrorHandler =
     HashParseExceptionErrorHandler();
+
+abstract class InputSignException implements Exception {
+  RustBuffer lower();
+  int allocationSize();
+  int write(Uint8List buf);
+}
+
+class FfiConverterInputSignException {
+  static InputSignException lift(RustBuffer buffer) {
+    return FfiConverterInputSignException.read(buffer.asUint8List()).value;
+  }
+
+  static LiftRetVal<InputSignException> read(Uint8List buf) {
+    final index = buf.buffer.asByteData(buf.offsetInBytes).getInt32(0);
+    final subview = Uint8List.view(buf.buffer, buf.offsetInBytes + 4);
+    switch (index) {
+      case 1:
+        final lifted = IndexOutOfBoundsInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 2:
+        final lifted = InvalidSighashTypeInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 3:
+        final lifted = MissingInputUtxoInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 4:
+        final lifted = MissingRedeemScriptInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 5:
+        final lifted = MissingSpendUtxoInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 6:
+        final lifted = MissingWitnessScriptInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 7:
+        final lifted = MismatchedAlgoKeyInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 8:
+        final lifted = NotEcdsaInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 9:
+        final lifted = NotWpkhInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 10:
+        final lifted = SegwitV0SighashInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 11:
+        final lifted = P2wpkhSighashInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 12:
+        final lifted = TaprootExceptionInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 13:
+        final lifted = UnknownOutputTypeInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 14:
+        final lifted = KeyNotFoundInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 15:
+        final lifted = WrongSigningAlgorithmInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 16:
+        final lifted = UnsupportedInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 17:
+        final lifted = UnknownInputSignException.read(subview);
+        return LiftRetVal<InputSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      default:
+        throw UniffiInternalError(
+          UniffiInternalError.unexpectedEnumCase,
+          "Unable to determine enum variant",
+        );
+    }
+  }
+
+  static RustBuffer lower(InputSignException value) {
+    return value.lower();
+  }
+
+  static int allocationSize(InputSignException value) {
+    return value.allocationSize();
+  }
+
+  static int write(InputSignException value, Uint8List buf) {
+    return value.write(buf) - buf.offsetInBytes;
+  }
+}
+
+class IndexOutOfBoundsInputSignException extends InputSignException {
+  final String errorMessage;
+  IndexOutOfBoundsInputSignException(String this.errorMessage);
+  IndexOutOfBoundsInputSignException._(String this.errorMessage);
+  static LiftRetVal<IndexOutOfBoundsInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final errorMessage_lifted = FfiConverterString.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final errorMessage = errorMessage_lifted.value;
+    new_offset += errorMessage_lifted.bytesRead;
+    return LiftRetVal(
+      IndexOutOfBoundsInputSignException._(errorMessage),
+      new_offset,
+    );
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return FfiConverterString.allocationSize(errorMessage) + 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 1);
+    int new_offset = buf.offsetInBytes + 4;
+    new_offset += FfiConverterString.write(
+      errorMessage,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "IndexOutOfBoundsInputSignException($errorMessage)";
+  }
+}
+
+class InvalidSighashTypeInputSignException extends InputSignException {
+  InvalidSighashTypeInputSignException();
+  InvalidSighashTypeInputSignException._();
+  static LiftRetVal<InvalidSighashTypeInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(InvalidSighashTypeInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 2);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "InvalidSighashTypeInputSignException";
+  }
+}
+
+class MissingInputUtxoInputSignException extends InputSignException {
+  MissingInputUtxoInputSignException();
+  MissingInputUtxoInputSignException._();
+  static LiftRetVal<MissingInputUtxoInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(MissingInputUtxoInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 3);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "MissingInputUtxoInputSignException";
+  }
+}
+
+class MissingRedeemScriptInputSignException extends InputSignException {
+  MissingRedeemScriptInputSignException();
+  MissingRedeemScriptInputSignException._();
+  static LiftRetVal<MissingRedeemScriptInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(MissingRedeemScriptInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 4);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "MissingRedeemScriptInputSignException";
+  }
+}
+
+class MissingSpendUtxoInputSignException extends InputSignException {
+  MissingSpendUtxoInputSignException();
+  MissingSpendUtxoInputSignException._();
+  static LiftRetVal<MissingSpendUtxoInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(MissingSpendUtxoInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 5);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "MissingSpendUtxoInputSignException";
+  }
+}
+
+class MissingWitnessScriptInputSignException extends InputSignException {
+  MissingWitnessScriptInputSignException();
+  MissingWitnessScriptInputSignException._();
+  static LiftRetVal<MissingWitnessScriptInputSignException> read(
+    Uint8List buf,
+  ) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(MissingWitnessScriptInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 6);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "MissingWitnessScriptInputSignException";
+  }
+}
+
+class MismatchedAlgoKeyInputSignException extends InputSignException {
+  MismatchedAlgoKeyInputSignException();
+  MismatchedAlgoKeyInputSignException._();
+  static LiftRetVal<MismatchedAlgoKeyInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(MismatchedAlgoKeyInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 7);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "MismatchedAlgoKeyInputSignException";
+  }
+}
+
+class NotEcdsaInputSignException extends InputSignException {
+  NotEcdsaInputSignException();
+  NotEcdsaInputSignException._();
+  static LiftRetVal<NotEcdsaInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(NotEcdsaInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 8);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "NotEcdsaInputSignException";
+  }
+}
+
+class NotWpkhInputSignException extends InputSignException {
+  NotWpkhInputSignException();
+  NotWpkhInputSignException._();
+  static LiftRetVal<NotWpkhInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(NotWpkhInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 9);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "NotWpkhInputSignException";
+  }
+}
+
+class SegwitV0SighashInputSignException extends InputSignException {
+  final String errorMessage;
+  SegwitV0SighashInputSignException(String this.errorMessage);
+  SegwitV0SighashInputSignException._(String this.errorMessage);
+  static LiftRetVal<SegwitV0SighashInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final errorMessage_lifted = FfiConverterString.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final errorMessage = errorMessage_lifted.value;
+    new_offset += errorMessage_lifted.bytesRead;
+    return LiftRetVal(
+      SegwitV0SighashInputSignException._(errorMessage),
+      new_offset,
+    );
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return FfiConverterString.allocationSize(errorMessage) + 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 10);
+    int new_offset = buf.offsetInBytes + 4;
+    new_offset += FfiConverterString.write(
+      errorMessage,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "SegwitV0SighashInputSignException($errorMessage)";
+  }
+}
+
+class P2wpkhSighashInputSignException extends InputSignException {
+  final String errorMessage;
+  P2wpkhSighashInputSignException(String this.errorMessage);
+  P2wpkhSighashInputSignException._(String this.errorMessage);
+  static LiftRetVal<P2wpkhSighashInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final errorMessage_lifted = FfiConverterString.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final errorMessage = errorMessage_lifted.value;
+    new_offset += errorMessage_lifted.bytesRead;
+    return LiftRetVal(
+      P2wpkhSighashInputSignException._(errorMessage),
+      new_offset,
+    );
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return FfiConverterString.allocationSize(errorMessage) + 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 11);
+    int new_offset = buf.offsetInBytes + 4;
+    new_offset += FfiConverterString.write(
+      errorMessage,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "P2wpkhSighashInputSignException($errorMessage)";
+  }
+}
+
+class TaprootExceptionInputSignException extends InputSignException {
+  final String errorMessage;
+  TaprootExceptionInputSignException(String this.errorMessage);
+  TaprootExceptionInputSignException._(String this.errorMessage);
+  static LiftRetVal<TaprootExceptionInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final errorMessage_lifted = FfiConverterString.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final errorMessage = errorMessage_lifted.value;
+    new_offset += errorMessage_lifted.bytesRead;
+    return LiftRetVal(
+      TaprootExceptionInputSignException._(errorMessage),
+      new_offset,
+    );
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return FfiConverterString.allocationSize(errorMessage) + 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 12);
+    int new_offset = buf.offsetInBytes + 4;
+    new_offset += FfiConverterString.write(
+      errorMessage,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "TaprootExceptionInputSignException($errorMessage)";
+  }
+}
+
+class UnknownOutputTypeInputSignException extends InputSignException {
+  UnknownOutputTypeInputSignException();
+  UnknownOutputTypeInputSignException._();
+  static LiftRetVal<UnknownOutputTypeInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(UnknownOutputTypeInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 13);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "UnknownOutputTypeInputSignException";
+  }
+}
+
+class KeyNotFoundInputSignException extends InputSignException {
+  KeyNotFoundInputSignException();
+  KeyNotFoundInputSignException._();
+  static LiftRetVal<KeyNotFoundInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(KeyNotFoundInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 14);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "KeyNotFoundInputSignException";
+  }
+}
+
+class WrongSigningAlgorithmInputSignException extends InputSignException {
+  WrongSigningAlgorithmInputSignException();
+  WrongSigningAlgorithmInputSignException._();
+  static LiftRetVal<WrongSigningAlgorithmInputSignException> read(
+    Uint8List buf,
+  ) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(WrongSigningAlgorithmInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 15);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "WrongSigningAlgorithmInputSignException";
+  }
+}
+
+class UnsupportedInputSignException extends InputSignException {
+  UnsupportedInputSignException();
+  UnsupportedInputSignException._();
+  static LiftRetVal<UnsupportedInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(UnsupportedInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 16);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "UnsupportedInputSignException";
+  }
+}
+
+class UnknownInputSignException extends InputSignException {
+  UnknownInputSignException();
+  UnknownInputSignException._();
+  static LiftRetVal<UnknownInputSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(UnknownInputSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 17);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "UnknownInputSignException";
+  }
+}
+
+class InputSignExceptionErrorHandler extends UniffiRustCallStatusErrorHandler {
+  @override
+  Exception lift(RustBuffer errorBuf) {
+    return FfiConverterInputSignException.lift(errorBuf);
+  }
+}
+
+final InputSignExceptionErrorHandler inputSignExceptionErrorHandler =
+    InputSignExceptionErrorHandler();
 
 abstract class LoadWithPersistException implements Exception {
   RustBuffer lower();
@@ -15390,6 +16474,91 @@ class PsbtParseExceptionErrorHandler extends UniffiRustCallStatusErrorHandler {
 final PsbtParseExceptionErrorHandler psbtParseExceptionErrorHandler =
     PsbtParseExceptionErrorHandler();
 
+abstract class PsbtSignException implements Exception {
+  RustBuffer lower();
+  int allocationSize();
+  int write(Uint8List buf);
+}
+
+class FfiConverterPsbtSignException {
+  static PsbtSignException lift(RustBuffer buffer) {
+    return FfiConverterPsbtSignException.read(buffer.asUint8List()).value;
+  }
+
+  static LiftRetVal<PsbtSignException> read(Uint8List buf) {
+    final index = buf.buffer.asByteData(buf.offsetInBytes).getInt32(0);
+    final subview = Uint8List.view(buf.buffer, buf.offsetInBytes + 4);
+    switch (index) {
+      case 1:
+        final lifted = NoSecretKeysPsbtSignException.read(subview);
+        return LiftRetVal<PsbtSignException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      default:
+        throw UniffiInternalError(
+          UniffiInternalError.unexpectedEnumCase,
+          "Unable to determine enum variant",
+        );
+    }
+  }
+
+  static RustBuffer lower(PsbtSignException value) {
+    return value.lower();
+  }
+
+  static int allocationSize(PsbtSignException value) {
+    return value.allocationSize();
+  }
+
+  static int write(PsbtSignException value, Uint8List buf) {
+    return value.write(buf) - buf.offsetInBytes;
+  }
+}
+
+class NoSecretKeysPsbtSignException extends PsbtSignException {
+  NoSecretKeysPsbtSignException();
+  NoSecretKeysPsbtSignException._();
+  static LiftRetVal<NoSecretKeysPsbtSignException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(NoSecretKeysPsbtSignException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 1);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "NoSecretKeysPsbtSignException";
+  }
+}
+
+class PsbtSignExceptionErrorHandler extends UniffiRustCallStatusErrorHandler {
+  @override
+  Exception lift(RustBuffer errorBuf) {
+    return FfiConverterPsbtSignException.lift(errorBuf);
+  }
+}
+
+final PsbtSignExceptionErrorHandler psbtSignExceptionErrorHandler =
+    PsbtSignExceptionErrorHandler();
+
 abstract class RequestBuilderException implements Exception {
   RustBuffer lower();
   int allocationSize();
@@ -16358,6 +17527,287 @@ class SignerExceptionErrorHandler extends UniffiRustCallStatusErrorHandler {
 final SignerExceptionErrorHandler signerExceptionErrorHandler =
     SignerExceptionErrorHandler();
 
+abstract class SpkIndexException implements Exception {
+  RustBuffer lower();
+  int allocationSize();
+  int write(Uint8List buf);
+}
+
+class FfiConverterSpkIndexException {
+  static SpkIndexException lift(RustBuffer buffer) {
+    return FfiConverterSpkIndexException.read(buffer.asUint8List()).value;
+  }
+
+  static LiftRetVal<SpkIndexException> read(Uint8List buf) {
+    final index = buf.buffer.asByteData(buf.offsetInBytes).getInt32(0);
+    final subview = Uint8List.view(buf.buffer, buf.offsetInBytes + 4);
+    switch (index) {
+      case 1:
+        final lifted = NotRevealedSpkIndexException.read(subview);
+        return LiftRetVal<SpkIndexException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 2:
+        final lifted = NoneRevealedSpkIndexException.read(subview);
+        return LiftRetVal<SpkIndexException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 3:
+        final lifted = KeychainNotFoundSpkIndexException.read(subview);
+        return LiftRetVal<SpkIndexException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 4:
+        final lifted = NoSpksRequestedSpkIndexException.read(subview);
+        return LiftRetVal<SpkIndexException>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      default:
+        throw UniffiInternalError(
+          UniffiInternalError.unexpectedEnumCase,
+          "Unable to determine enum variant",
+        );
+    }
+  }
+
+  static RustBuffer lower(SpkIndexException value) {
+    return value.lower();
+  }
+
+  static int allocationSize(SpkIndexException value) {
+    return value.allocationSize();
+  }
+
+  static int write(SpkIndexException value, Uint8List buf) {
+    return value.write(buf) - buf.offsetInBytes;
+  }
+}
+
+class NotRevealedSpkIndexException extends SpkIndexException {
+  final KeychainKind keychain;
+  final int index;
+  final int lastRevealed;
+  NotRevealedSpkIndexException({
+    required KeychainKind this.keychain,
+    required int this.index,
+    required int this.lastRevealed,
+  });
+  NotRevealedSpkIndexException._(
+    KeychainKind this.keychain,
+    int this.index,
+    int this.lastRevealed,
+  );
+  static LiftRetVal<NotRevealedSpkIndexException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final keychain_int = buf.buffer.asByteData(new_offset).getInt32(0);
+    final keychain = FfiConverterKeychainKind.lift(
+      toRustBuffer(createUint8ListFromInt(keychain_int)),
+    );
+    new_offset += 4;
+    final index_lifted = FfiConverterUInt32.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final index = index_lifted.value;
+    new_offset += index_lifted.bytesRead;
+    final lastRevealed_lifted = FfiConverterUInt32.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final lastRevealed = lastRevealed_lifted.value;
+    new_offset += lastRevealed_lifted.bytesRead;
+    return LiftRetVal(
+      NotRevealedSpkIndexException._(keychain, index, lastRevealed),
+      new_offset,
+    );
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4 +
+        FfiConverterUInt32.allocationSize(index) +
+        FfiConverterUInt32.allocationSize(lastRevealed) +
+        4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 1);
+    int new_offset = buf.offsetInBytes + 4;
+    final keychain_buffer = FfiConverterKeychainKind.lower(keychain);
+    final keychain_int = keychain_buffer
+        .asUint8List()
+        .buffer
+        .asByteData()
+        .getInt32(0);
+    buf.buffer.asByteData(new_offset).setInt32(0, keychain_int);
+    new_offset += 4;
+    new_offset += FfiConverterUInt32.write(
+      index,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    new_offset += FfiConverterUInt32.write(
+      lastRevealed,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "NotRevealedSpkIndexException($keychain, $index, $lastRevealed)";
+  }
+}
+
+class NoneRevealedSpkIndexException extends SpkIndexException {
+  final KeychainKind keychain;
+  NoneRevealedSpkIndexException(KeychainKind this.keychain);
+  NoneRevealedSpkIndexException._(KeychainKind this.keychain);
+  static LiftRetVal<NoneRevealedSpkIndexException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final keychain_int = buf.buffer.asByteData(new_offset).getInt32(0);
+    final keychain = FfiConverterKeychainKind.lift(
+      toRustBuffer(createUint8ListFromInt(keychain_int)),
+    );
+    new_offset += 4;
+    return LiftRetVal(NoneRevealedSpkIndexException._(keychain), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4 + 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 2);
+    int new_offset = buf.offsetInBytes + 4;
+    final keychain_buffer = FfiConverterKeychainKind.lower(keychain);
+    final keychain_int = keychain_buffer
+        .asUint8List()
+        .buffer
+        .asByteData()
+        .getInt32(0);
+    buf.buffer.asByteData(new_offset).setInt32(0, keychain_int);
+    new_offset += 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "NoneRevealedSpkIndexException($keychain)";
+  }
+}
+
+class KeychainNotFoundSpkIndexException extends SpkIndexException {
+  final KeychainKind keychain;
+  KeychainNotFoundSpkIndexException(KeychainKind this.keychain);
+  KeychainNotFoundSpkIndexException._(KeychainKind this.keychain);
+  static LiftRetVal<KeychainNotFoundSpkIndexException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final keychain_int = buf.buffer.asByteData(new_offset).getInt32(0);
+    final keychain = FfiConverterKeychainKind.lift(
+      toRustBuffer(createUint8ListFromInt(keychain_int)),
+    );
+    new_offset += 4;
+    return LiftRetVal(
+      KeychainNotFoundSpkIndexException._(keychain),
+      new_offset,
+    );
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4 + 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 3);
+    int new_offset = buf.offsetInBytes + 4;
+    final keychain_buffer = FfiConverterKeychainKind.lower(keychain);
+    final keychain_int = keychain_buffer
+        .asUint8List()
+        .buffer
+        .asByteData()
+        .getInt32(0);
+    buf.buffer.asByteData(new_offset).setInt32(0, keychain_int);
+    new_offset += 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "KeychainNotFoundSpkIndexException($keychain)";
+  }
+}
+
+class NoSpksRequestedSpkIndexException extends SpkIndexException {
+  NoSpksRequestedSpkIndexException();
+  NoSpksRequestedSpkIndexException._();
+  static LiftRetVal<NoSpksRequestedSpkIndexException> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(NoSpksRequestedSpkIndexException._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 4);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+
+  @override
+  String toString() {
+    return "NoSpksRequestedSpkIndexException";
+  }
+}
+
+class SpkIndexExceptionErrorHandler extends UniffiRustCallStatusErrorHandler {
+  @override
+  Exception lift(RustBuffer errorBuf) {
+    return FfiConverterSpkIndexException.lift(errorBuf);
+  }
+}
+
+final SpkIndexExceptionErrorHandler spkIndexExceptionErrorHandler =
+    SpkIndexExceptionErrorHandler();
+
 abstract class TransactionException implements Exception {
   RustBuffer lower();
   int allocationSize();
@@ -16857,12 +18307,24 @@ class FfiConverterInfo {
           lifted.bytesRead - subview.offsetInBytes + 4,
         );
       case 3:
-        final lifted = ProgressInfo.read(subview);
+        final lifted = NewChainHeightInfo.read(subview);
         return LiftRetVal<Info>(
           lifted.value,
           lifted.bytesRead - subview.offsetInBytes + 4,
         );
       case 4:
+        final lifted = CfHeadersAddedInfo.read(subview);
+        return LiftRetVal<Info>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 5:
+        final lifted = FilterAddedInfo.read(subview);
+        return LiftRetVal<Info>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 6:
         final lifted = BlockReceivedInfo.read(subview);
         return LiftRetVal<Info>(
           lifted.value,
@@ -16945,30 +18407,18 @@ class SuccessfulHandshakeInfo extends Info {
   }
 }
 
-class ProgressInfo extends Info {
-  final int chainHeight;
-  final double filtersDownloadedPercent;
-  ProgressInfo({
-    required int this.chainHeight,
-    required double this.filtersDownloadedPercent,
-  });
-  ProgressInfo._(int this.chainHeight, double this.filtersDownloadedPercent);
-  static LiftRetVal<ProgressInfo> read(Uint8List buf) {
+class NewChainHeightInfo extends Info {
+  final int height;
+  NewChainHeightInfo(int this.height);
+  NewChainHeightInfo._(int this.height);
+  static LiftRetVal<NewChainHeightInfo> read(Uint8List buf) {
     int new_offset = buf.offsetInBytes;
-    final chainHeight_lifted = FfiConverterUInt32.read(
+    final height_lifted = FfiConverterUInt32.read(
       Uint8List.view(buf.buffer, new_offset),
     );
-    final chainHeight = chainHeight_lifted.value;
-    new_offset += chainHeight_lifted.bytesRead;
-    final filtersDownloadedPercent_lifted = FfiConverterDouble32.read(
-      Uint8List.view(buf.buffer, new_offset),
-    );
-    final filtersDownloadedPercent = filtersDownloadedPercent_lifted.value;
-    new_offset += filtersDownloadedPercent_lifted.bytesRead;
-    return LiftRetVal(
-      ProgressInfo._(chainHeight, filtersDownloadedPercent),
-      new_offset,
-    );
+    final height = height_lifted.value;
+    new_offset += height_lifted.bytesRead;
+    return LiftRetVal(NewChainHeightInfo._(height), new_offset);
   }
 
   @override
@@ -16980,9 +18430,7 @@ class ProgressInfo extends Info {
 
   @override
   int allocationSize() {
-    return FfiConverterUInt32.allocationSize(chainHeight) +
-        FfiConverterDouble32.allocationSize(filtersDownloadedPercent) +
-        4;
+    return FfiConverterUInt32.allocationSize(height) + 4;
   }
 
   @override
@@ -16990,11 +18438,83 @@ class ProgressInfo extends Info {
     buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 3);
     int new_offset = buf.offsetInBytes + 4;
     new_offset += FfiConverterUInt32.write(
-      chainHeight,
+      height,
       Uint8List.view(buf.buffer, new_offset),
     );
-    new_offset += FfiConverterDouble32.write(
-      filtersDownloadedPercent,
+    return new_offset;
+  }
+}
+
+class CfHeadersAddedInfo extends Info {
+  final int height;
+  CfHeadersAddedInfo(int this.height);
+  CfHeadersAddedInfo._(int this.height);
+  static LiftRetVal<CfHeadersAddedInfo> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final height_lifted = FfiConverterUInt32.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final height = height_lifted.value;
+    new_offset += height_lifted.bytesRead;
+    return LiftRetVal(CfHeadersAddedInfo._(height), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return FfiConverterUInt32.allocationSize(height) + 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 4);
+    int new_offset = buf.offsetInBytes + 4;
+    new_offset += FfiConverterUInt32.write(
+      height,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset;
+  }
+}
+
+class FilterAddedInfo extends Info {
+  final int height;
+  FilterAddedInfo(int this.height);
+  FilterAddedInfo._(int this.height);
+  static LiftRetVal<FilterAddedInfo> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final height_lifted = FfiConverterUInt32.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final height = height_lifted.value;
+    new_offset += height_lifted.bytesRead;
+    return LiftRetVal(FilterAddedInfo._(height), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return FfiConverterUInt32.allocationSize(height) + 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 5);
+    int new_offset = buf.offsetInBytes + 4;
+    new_offset += FfiConverterUInt32.write(
+      height,
       Uint8List.view(buf.buffer, new_offset),
     );
     return new_offset;
@@ -17029,7 +18549,7 @@ class BlockReceivedInfo extends Info {
 
   @override
   int write(Uint8List buf) {
-    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 4);
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 6);
     int new_offset = buf.offsetInBytes + 4;
     new_offset += FfiConverterString.write(
       v0,
@@ -17243,6 +18763,12 @@ class FfiConverterScanType {
           lifted.bytesRead - subview.offsetInBytes + 4,
         );
       case 2:
+        final lifted = NewWalletScanType.read(subview);
+        return LiftRetVal<ScanType>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 3:
         final lifted = RecoveryScanType.read(subview);
         return LiftRetVal<ScanType>(
           lifted.value,
@@ -17297,30 +18823,12 @@ class SyncScanType extends ScanType {
   }
 }
 
-class RecoveryScanType extends ScanType {
-  final int usedScriptIndex;
-  final RecoveryPoint checkpoint;
-  RecoveryScanType({
-    required int this.usedScriptIndex,
-    required RecoveryPoint this.checkpoint,
-  });
-  RecoveryScanType._(int this.usedScriptIndex, RecoveryPoint this.checkpoint);
-  static LiftRetVal<RecoveryScanType> read(Uint8List buf) {
+class NewWalletScanType extends ScanType {
+  NewWalletScanType();
+  NewWalletScanType._();
+  static LiftRetVal<NewWalletScanType> read(Uint8List buf) {
     int new_offset = buf.offsetInBytes;
-    final usedScriptIndex_lifted = FfiConverterUInt32.read(
-      Uint8List.view(buf.buffer, new_offset),
-    );
-    final usedScriptIndex = usedScriptIndex_lifted.value;
-    new_offset += usedScriptIndex_lifted.bytesRead;
-    final checkpoint_lifted = FfiConverterRecoveryPoint.read(
-      Uint8List.view(buf.buffer, new_offset),
-    );
-    final checkpoint = checkpoint_lifted.value;
-    new_offset += checkpoint_lifted.bytesRead;
-    return LiftRetVal(
-      RecoveryScanType._(usedScriptIndex, checkpoint),
-      new_offset,
-    );
+    return LiftRetVal(NewWalletScanType._(), new_offset);
   }
 
   @override
@@ -17332,19 +18840,47 @@ class RecoveryScanType extends ScanType {
 
   @override
   int allocationSize() {
-    return FfiConverterUInt32.allocationSize(usedScriptIndex) +
-        FfiConverterRecoveryPoint.allocationSize(checkpoint) +
-        4;
+    return 4;
   }
 
   @override
   int write(Uint8List buf) {
     buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 2);
     int new_offset = buf.offsetInBytes + 4;
-    new_offset += FfiConverterUInt32.write(
-      usedScriptIndex,
+    return new_offset;
+  }
+}
+
+class RecoveryScanType extends ScanType {
+  final RecoveryPoint checkpoint;
+  RecoveryScanType(RecoveryPoint this.checkpoint);
+  RecoveryScanType._(RecoveryPoint this.checkpoint);
+  static LiftRetVal<RecoveryScanType> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final checkpoint_lifted = FfiConverterRecoveryPoint.read(
       Uint8List.view(buf.buffer, new_offset),
     );
+    final checkpoint = checkpoint_lifted.value;
+    new_offset += checkpoint_lifted.bytesRead;
+    return LiftRetVal(RecoveryScanType._(checkpoint), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return FfiConverterRecoveryPoint.allocationSize(checkpoint) + 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 3);
+    int new_offset = buf.offsetInBytes + 4;
     new_offset += FfiConverterRecoveryPoint.write(
       checkpoint,
       Uint8List.view(buf.buffer, new_offset),
@@ -18024,6 +19560,188 @@ class UnconfirmedChainPosition extends ChainPosition {
     int new_offset = buf.offsetInBytes + 4;
     new_offset += FfiConverterOptionalUInt64.write(
       timestamp,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset;
+  }
+}
+
+abstract class FinalizeInputOutcome {
+  RustBuffer lower();
+  int allocationSize();
+  int write(Uint8List buf);
+}
+
+class FfiConverterFinalizeInputOutcome {
+  static FinalizeInputOutcome lift(RustBuffer buffer) {
+    return FfiConverterFinalizeInputOutcome.read(buffer.asUint8List()).value;
+  }
+
+  static LiftRetVal<FinalizeInputOutcome> read(Uint8List buf) {
+    final index = buf.buffer.asByteData(buf.offsetInBytes).getInt32(0);
+    final subview = Uint8List.view(buf.buffer, buf.offsetInBytes + 4);
+    switch (index) {
+      case 1:
+        final lifted = AlreadyFinalizedFinalizeInputOutcome.read(subview);
+        return LiftRetVal<FinalizeInputOutcome>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 2:
+        final lifted = FinalizedFinalizeInputOutcome.read(subview);
+        return LiftRetVal<FinalizeInputOutcome>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 3:
+        final lifted = MissingDescriptorFinalizeInputOutcome.read(subview);
+        return LiftRetVal<FinalizeInputOutcome>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 4:
+        final lifted = CouldNotSatisfyFinalizeInputOutcome.read(subview);
+        return LiftRetVal<FinalizeInputOutcome>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      default:
+        throw UniffiInternalError(
+          UniffiInternalError.unexpectedEnumCase,
+          "Unable to determine enum variant",
+        );
+    }
+  }
+
+  static RustBuffer lower(FinalizeInputOutcome value) {
+    return value.lower();
+  }
+
+  static int allocationSize(FinalizeInputOutcome value) {
+    return value.allocationSize();
+  }
+
+  static int write(FinalizeInputOutcome value, Uint8List buf) {
+    return value.write(buf) - buf.offsetInBytes;
+  }
+}
+
+class AlreadyFinalizedFinalizeInputOutcome extends FinalizeInputOutcome {
+  AlreadyFinalizedFinalizeInputOutcome();
+  AlreadyFinalizedFinalizeInputOutcome._();
+  static LiftRetVal<AlreadyFinalizedFinalizeInputOutcome> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(AlreadyFinalizedFinalizeInputOutcome._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 1);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+}
+
+class FinalizedFinalizeInputOutcome extends FinalizeInputOutcome {
+  FinalizedFinalizeInputOutcome();
+  FinalizedFinalizeInputOutcome._();
+  static LiftRetVal<FinalizedFinalizeInputOutcome> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(FinalizedFinalizeInputOutcome._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 2);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+}
+
+class MissingDescriptorFinalizeInputOutcome extends FinalizeInputOutcome {
+  MissingDescriptorFinalizeInputOutcome();
+  MissingDescriptorFinalizeInputOutcome._();
+  static LiftRetVal<MissingDescriptorFinalizeInputOutcome> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    return LiftRetVal(MissingDescriptorFinalizeInputOutcome._(), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 3);
+    int new_offset = buf.offsetInBytes + 4;
+    return new_offset;
+  }
+}
+
+class CouldNotSatisfyFinalizeInputOutcome extends FinalizeInputOutcome {
+  final MiniscriptException error;
+  CouldNotSatisfyFinalizeInputOutcome(MiniscriptException this.error);
+  CouldNotSatisfyFinalizeInputOutcome._(MiniscriptException this.error);
+  static LiftRetVal<CouldNotSatisfyFinalizeInputOutcome> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final error_lifted = FfiConverterMiniscriptException.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final error = error_lifted.value;
+    new_offset += error_lifted.bytesRead;
+    return LiftRetVal(CouldNotSatisfyFinalizeInputOutcome._(error), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return FfiConverterMiniscriptException.allocationSize(error) + 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 4);
+    int new_offset = buf.offsetInBytes + 4;
+    new_offset += FfiConverterMiniscriptException.write(
+      error,
       Uint8List.view(buf.buffer, new_offset),
     );
     return new_offset;
@@ -19199,6 +20917,133 @@ class ThreshSatisfiableItem extends SatisfiableItem {
   }
 }
 
+abstract class TxRejectedReason {
+  RustBuffer lower();
+  int allocationSize();
+  int write(Uint8List buf);
+}
+
+class FfiConverterTxRejectedReason {
+  static TxRejectedReason lift(RustBuffer buffer) {
+    return FfiConverterTxRejectedReason.read(buffer.asUint8List()).value;
+  }
+
+  static LiftRetVal<TxRejectedReason> read(Uint8List buf) {
+    final index = buf.buffer.asByteData(buf.offsetInBytes).getInt32(0);
+    final subview = Uint8List.view(buf.buffer, buf.offsetInBytes + 4);
+    switch (index) {
+      case 1:
+        final lifted = InvalidInputTxRejectedReason.read(subview);
+        return LiftRetVal<TxRejectedReason>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 2:
+        final lifted = MissingPrevoutsTxRejectedReason.read(subview);
+        return LiftRetVal<TxRejectedReason>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      default:
+        throw UniffiInternalError(
+          UniffiInternalError.unexpectedEnumCase,
+          "Unable to determine enum variant",
+        );
+    }
+  }
+
+  static RustBuffer lower(TxRejectedReason value) {
+    return value.lower();
+  }
+
+  static int allocationSize(TxRejectedReason value) {
+    return value.allocationSize();
+  }
+
+  static int write(TxRejectedReason value, Uint8List buf) {
+    return value.write(buf) - buf.offsetInBytes;
+  }
+}
+
+class InvalidInputTxRejectedReason extends TxRejectedReason {
+  final int inputIndex;
+  InvalidInputTxRejectedReason(int this.inputIndex);
+  InvalidInputTxRejectedReason._(int this.inputIndex);
+  static LiftRetVal<InvalidInputTxRejectedReason> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final inputIndex_lifted = FfiConverterUInt32.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final inputIndex = inputIndex_lifted.value;
+    new_offset += inputIndex_lifted.bytesRead;
+    return LiftRetVal(InvalidInputTxRejectedReason._(inputIndex), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return FfiConverterUInt32.allocationSize(inputIndex) + 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 1);
+    int new_offset = buf.offsetInBytes + 4;
+    new_offset += FfiConverterUInt32.write(
+      inputIndex,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset;
+  }
+}
+
+class MissingPrevoutsTxRejectedReason extends TxRejectedReason {
+  final int inputIndex;
+  MissingPrevoutsTxRejectedReason(int this.inputIndex);
+  MissingPrevoutsTxRejectedReason._(int this.inputIndex);
+  static LiftRetVal<MissingPrevoutsTxRejectedReason> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final inputIndex_lifted = FfiConverterUInt32.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final inputIndex = inputIndex_lifted.value;
+    new_offset += inputIndex_lifted.bytesRead;
+    return LiftRetVal(
+      MissingPrevoutsTxRejectedReason._(inputIndex),
+      new_offset,
+    );
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return FfiConverterUInt32.allocationSize(inputIndex) + 4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 2);
+    int new_offset = buf.offsetInBytes + 4;
+    new_offset += FfiConverterUInt32.write(
+      inputIndex,
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    return new_offset;
+  }
+}
+
 abstract class WalletEvent {
   RustBuffer lower();
   int allocationSize();
@@ -19240,6 +21085,12 @@ class FfiConverterWalletEvent {
         );
       case 5:
         final lifted = TxDroppedWalletEvent.read(subview);
+        return LiftRetVal<WalletEvent>(
+          lifted.value,
+          lifted.bytesRead - subview.offsetInBytes + 4,
+        );
+      case 6:
+        final lifted = TxRejectedWalletEvent.read(subview);
         return LiftRetVal<WalletEvent>(
           lifted.value,
           lifted.bytesRead - subview.offsetInBytes + 4,
@@ -19548,6 +21399,65 @@ class TxDroppedWalletEvent extends WalletEvent {
     int new_offset = buf.offsetInBytes + 4;
     new_offset += Txid.write(txid, Uint8List.view(buf.buffer, new_offset));
     new_offset += Transaction.write(tx, Uint8List.view(buf.buffer, new_offset));
+    return new_offset;
+  }
+}
+
+class TxRejectedWalletEvent extends WalletEvent {
+  final Txid txid;
+  final Transaction tx;
+  final TxRejectedReason reason;
+  TxRejectedWalletEvent({
+    required Txid this.txid,
+    required Transaction this.tx,
+    required TxRejectedReason this.reason,
+  });
+  TxRejectedWalletEvent._(
+    Txid this.txid,
+    Transaction this.tx,
+    TxRejectedReason this.reason,
+  );
+  static LiftRetVal<TxRejectedWalletEvent> read(Uint8List buf) {
+    int new_offset = buf.offsetInBytes;
+    final txid_lifted = Txid.read(Uint8List.view(buf.buffer, new_offset));
+    final txid = txid_lifted.value;
+    new_offset += txid_lifted.bytesRead;
+    final tx_lifted = Transaction.read(Uint8List.view(buf.buffer, new_offset));
+    final tx = tx_lifted.value;
+    new_offset += tx_lifted.bytesRead;
+    final reason_lifted = FfiConverterTxRejectedReason.read(
+      Uint8List.view(buf.buffer, new_offset),
+    );
+    final reason = reason_lifted.value;
+    new_offset += reason_lifted.bytesRead;
+    return LiftRetVal(TxRejectedWalletEvent._(txid, tx, reason), new_offset);
+  }
+
+  @override
+  RustBuffer lower() {
+    final buf = Uint8List(allocationSize());
+    write(buf);
+    return toRustBuffer(buf);
+  }
+
+  @override
+  int allocationSize() {
+    return Txid.allocationSize(txid) +
+        Transaction.allocationSize(tx) +
+        FfiConverterTxRejectedReason.allocationSize(reason) +
+        4;
+  }
+
+  @override
+  int write(Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, 6);
+    int new_offset = buf.offsetInBytes + 4;
+    new_offset += Txid.write(txid, Uint8List.view(buf.buffer, new_offset));
+    new_offset += Transaction.write(tx, Uint8List.view(buf.buffer, new_offset));
+    new_offset += FfiConverterTxRejectedReason.write(
+      reason,
+      Uint8List.view(buf.buffer, new_offset),
+    );
     return new_offset;
   }
 }
@@ -20580,6 +22490,7 @@ abstract class PsbtInterface {
   String jsonSerialize();
   List<Output> output();
   String serialize();
+  PsbtSignResult sign({required List<Descriptor> descriptors});
   String spendUtxo({required int inputIndex});
   void writeToFile({required String path});
 }
@@ -20764,6 +22675,18 @@ class Psbt implements PsbtInterface {
           uniffi_bdkffi_fn_method_psbt_serialize(uniffiClonePointer(), status),
       FfiConverterString.lift,
       null,
+    );
+  }
+
+  PsbtSignResult sign({required List<Descriptor> descriptors}) {
+    return rustCallWithLifter(
+      (status) => uniffi_bdkffi_fn_method_psbt_sign(
+        uniffiClonePointer(),
+        FfiConverterSequenceDescriptor.lower(descriptors),
+        status,
+      ),
+      FfiConverterPsbtSignResult.lift,
+      psbtSignExceptionErrorHandler,
     );
   }
 
@@ -22038,7 +23961,7 @@ abstract class ElectrumClientInterface {
   });
   void ping();
   void populateAnchorCache({required List<TxAnchor> anchors});
-  void populateTxCache({required List<Transaction> transactions});
+  void populateTxCache({required List<Transaction> txs});
   double relayFee();
   ServerFeaturesRes serverFeatures();
   Update sync_({
@@ -22207,11 +24130,11 @@ class ElectrumClient implements ElectrumClientInterface {
     }, null);
   }
 
-  void populateTxCache({required List<Transaction> transactions}) {
+  void populateTxCache({required List<Transaction> txs}) {
     return rustCall((status) {
       uniffi_bdkffi_fn_method_electrumclient_populate_tx_cache(
         uniffiClonePointer(),
-        FfiConverterSequenceTransaction.lower(transactions),
+        FfiConverterSequenceTransaction.lower(txs),
         status,
       );
     }, null);
@@ -23131,7 +25054,7 @@ abstract class CbfBuilderInterface {
     required int response,
   });
   CbfBuilder connections({required int connections});
-  CbfBuilder dataDir({required String dataDir});
+  CbfBuilder emitUpdateEveryNBlocks({required int blocks});
   CbfBuilder onlyConfiguredPeers();
   CbfBuilder peers({required List<Peer> peers});
   CbfBuilder scanType({required ScanType scanType});
@@ -23228,11 +25151,11 @@ class CbfBuilder implements CbfBuilderInterface {
     );
   }
 
-  CbfBuilder dataDir({required String dataDir}) {
+  CbfBuilder emitUpdateEveryNBlocks({required int blocks}) {
     return rustCallWithLifter(
-      (status) => uniffi_bdkffi_fn_method_cbfbuilder_data_dir(
+      (status) => uniffi_bdkffi_fn_method_cbfbuilder_emit_update_every_n_blocks(
         uniffiClonePointer(),
-        FfiConverterString.lower(dataDir),
+        FfiConverterUInt32.lower(blocks),
         status,
       ),
       CbfBuilder.lift,
@@ -25707,7 +27630,9 @@ void initSyncScriptInspectorVTable() {
   FfiConverterCallbackInterfaceSyncScriptInspector._vtableInitialized = true;
 }
 
-abstract class UpdateInterface {}
+abstract class UpdateInterface {
+  UpdateTransactionObservations transactionObservations();
+}
 
 final _UpdateFinalizer = Finalizer<Pointer<Void>>((ptr) {
   rustCall((status) => uniffi_bdkffi_fn_free_update(ptr, status));
@@ -25748,6 +27673,17 @@ class Update implements UpdateInterface {
   void dispose() {
     _UpdateFinalizer.detach(this);
     rustCall((status) => uniffi_bdkffi_fn_free_update(_ptr, status));
+  }
+
+  UpdateTransactionObservations transactionObservations() {
+    return rustCallWithLifter(
+      (status) => uniffi_bdkffi_fn_method_update_transaction_observations(
+        uniffiClonePointer(),
+        status,
+      ),
+      FfiConverterUpdateTransactionObservations.lift,
+      null,
+    );
   }
 }
 
@@ -25808,8 +27744,13 @@ abstract class WalletInterface {
   FullScanRequestBuilder startFullScanAt({required int startTime});
   SyncRequestBuilder startSyncWithRevealedSpks();
   SyncRequestBuilder startSyncWithRevealedSpksAt({required int startTime});
+  SyncRequestBuilder startSyncWithSpkIndices({
+    required List<int> externalIndices,
+    required List<int> internalIndices,
+  });
   ChangeSet? takeStaged();
   List<CanonicalTx> transactions();
+  FinalizePsbtOutcome tryFinalizePsbt({required Psbt psbt});
   TxDetails? txDetails({required Txid txid});
   void unlockOutpoint({required OutPoint outpoint});
   bool unmarkUsed({required KeychainKind keychain, required int index});
@@ -26597,6 +28538,22 @@ class Wallet implements WalletInterface {
     );
   }
 
+  SyncRequestBuilder startSyncWithSpkIndices({
+    required List<int> externalIndices,
+    required List<int> internalIndices,
+  }) {
+    return rustCallWithLifter(
+      (status) => uniffi_bdkffi_fn_method_wallet_start_sync_with_spk_indices(
+        uniffiClonePointer(),
+        FfiConverterSequenceUInt32.lower(externalIndices),
+        FfiConverterSequenceUInt32.lower(internalIndices),
+        status,
+      ),
+      SyncRequestBuilder.lift,
+      spkIndexExceptionErrorHandler,
+    );
+  }
+
   ChangeSet? takeStaged() {
     return rustCallWithLifter(
       (status) => uniffi_bdkffi_fn_method_wallet_take_staged(
@@ -26616,6 +28573,18 @@ class Wallet implements WalletInterface {
       ),
       FfiConverterSequenceCanonicalTx.lift,
       null,
+    );
+  }
+
+  FinalizePsbtOutcome tryFinalizePsbt({required Psbt psbt}) {
+    return rustCallWithLifter(
+      (status) => uniffi_bdkffi_fn_method_wallet_try_finalize_psbt(
+        uniffiClonePointer(),
+        Psbt.lower(psbt),
+        status,
+      ),
+      FfiConverterFinalizePsbtOutcome.lift,
+      finalizePsbtExceptionErrorHandler,
     );
   }
 
@@ -26893,26 +28862,6 @@ class FfiConverterBool {
   static int write(bool value, Uint8List buf) {
     buf.setAll(0, [value ? 1 : 0]);
     return allocationSize();
-  }
-}
-
-class FfiConverterDouble32 {
-  static double lift(double value) => value;
-  static LiftRetVal<double> read(Uint8List buf) {
-    return LiftRetVal(
-      buf.buffer.asByteData(buf.offsetInBytes).getFloat32(0),
-      4,
-    );
-  }
-
-  static double lower(double value) => value;
-  static int allocationSize([double value = 0]) {
-    return 4;
-  }
-
-  static int write(double value, Uint8List buf) {
-    buf.buffer.asByteData(buf.offsetInBytes).setFloat32(0, value);
-    return FfiConverterDouble32.allocationSize();
   }
 }
 
@@ -27804,6 +29753,118 @@ class FfiConverterMapUInt32ToSequenceCondition {
   }
 
   static RustBuffer lower(Map<int, List<Condition>> value) {
+    final buf = Uint8List(allocationSize(value));
+    write(value, buf);
+    return toRustBuffer(buf);
+  }
+}
+
+class FfiConverterMapUInt64ToFinalizeInputOutcome {
+  static Map<int, FinalizeInputOutcome> lift(RustBuffer buf) {
+    return FfiConverterMapUInt64ToFinalizeInputOutcome.read(
+      buf.asUint8List(),
+    ).value;
+  }
+
+  static LiftRetVal<Map<int, FinalizeInputOutcome>> read(Uint8List buf) {
+    final map = <int, FinalizeInputOutcome>{};
+    final length = buf.buffer.asByteData(buf.offsetInBytes).getInt32(0);
+    int offset = buf.offsetInBytes + 4;
+    for (var i = 0; i < length; i++) {
+      final k = FfiConverterUInt64.read(Uint8List.view(buf.buffer, offset));
+      offset += k.bytesRead;
+      final v = FfiConverterFinalizeInputOutcome.read(
+        Uint8List.view(buf.buffer, offset),
+      );
+      offset += v.bytesRead;
+      map[k.value] = v.value;
+    }
+    return LiftRetVal(map, offset - buf.offsetInBytes);
+  }
+
+  static int write(Map<int, FinalizeInputOutcome> value, Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, value.length);
+    int offset = buf.offsetInBytes + 4;
+    for (final entry in value.entries) {
+      offset += FfiConverterUInt64.write(
+        entry.key,
+        Uint8List.view(buf.buffer, offset),
+      );
+      offset += FfiConverterFinalizeInputOutcome.write(
+        entry.value,
+        Uint8List.view(buf.buffer, offset),
+      );
+    }
+    return offset - buf.offsetInBytes;
+  }
+
+  static int allocationSize(Map<int, FinalizeInputOutcome> value) {
+    return value.entries
+        .map(
+          (e) =>
+              FfiConverterUInt64.allocationSize(e.key) +
+              FfiConverterFinalizeInputOutcome.allocationSize(e.value),
+        )
+        .fold(4, (a, b) => a + b);
+  }
+
+  static RustBuffer lower(Map<int, FinalizeInputOutcome> value) {
+    final buf = Uint8List(allocationSize(value));
+    write(value, buf);
+    return toRustBuffer(buf);
+  }
+}
+
+class FfiConverterMapUInt64ToInputSignException {
+  static Map<int, InputSignException> lift(RustBuffer buf) {
+    return FfiConverterMapUInt64ToInputSignException.read(
+      buf.asUint8List(),
+    ).value;
+  }
+
+  static LiftRetVal<Map<int, InputSignException>> read(Uint8List buf) {
+    final map = <int, InputSignException>{};
+    final length = buf.buffer.asByteData(buf.offsetInBytes).getInt32(0);
+    int offset = buf.offsetInBytes + 4;
+    for (var i = 0; i < length; i++) {
+      final k = FfiConverterUInt64.read(Uint8List.view(buf.buffer, offset));
+      offset += k.bytesRead;
+      final v = FfiConverterInputSignException.read(
+        Uint8List.view(buf.buffer, offset),
+      );
+      offset += v.bytesRead;
+      map[k.value] = v.value;
+    }
+    return LiftRetVal(map, offset - buf.offsetInBytes);
+  }
+
+  static int write(Map<int, InputSignException> value, Uint8List buf) {
+    buf.buffer.asByteData(buf.offsetInBytes).setInt32(0, value.length);
+    int offset = buf.offsetInBytes + 4;
+    for (final entry in value.entries) {
+      offset += FfiConverterUInt64.write(
+        entry.key,
+        Uint8List.view(buf.buffer, offset),
+      );
+      offset += FfiConverterInputSignException.write(
+        entry.value,
+        Uint8List.view(buf.buffer, offset),
+      );
+    }
+    return offset - buf.offsetInBytes;
+  }
+
+  static int allocationSize(Map<int, InputSignException> value) {
+    return value.entries
+        .map(
+          (e) =>
+              FfiConverterUInt64.allocationSize(e.key) +
+              FfiConverterInputSignException.allocationSize(e.value),
+        )
+        .fold(4, (a, b) => a + b);
+  }
+
+  static RustBuffer lower(Map<int, InputSignException> value) {
     final buf = Uint8List(allocationSize(value));
     write(value, buf);
     return toRustBuffer(buf);
@@ -32068,6 +34129,15 @@ external RustBuffer uniffi_bdkffi_fn_method_psbt_serialize(
   Pointer<RustCallStatus> uniffiStatus,
 );
 
+@Native<
+  RustBuffer Function(Pointer<Void>, RustBuffer, Pointer<RustCallStatus>)
+>(assetId: _uniffiAssetId)
+external RustBuffer uniffi_bdkffi_fn_method_psbt_sign(
+  Pointer<Void> ptr,
+  RustBuffer descriptors,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
 @Native<RustBuffer Function(Pointer<Void>, Uint64, Pointer<RustCallStatus>)>(
   assetId: _uniffiAssetId,
 )
@@ -33072,7 +35142,7 @@ external void uniffi_bdkffi_fn_method_electrumclient_populate_anchor_cache(
 )
 external void uniffi_bdkffi_fn_method_electrumclient_populate_tx_cache(
   Pointer<Void> ptr,
-  RustBuffer transactions,
+  RustBuffer txs,
   Pointer<RustCallStatus> uniffiStatus,
 );
 
@@ -33718,12 +35788,13 @@ external Pointer<Void> uniffi_bdkffi_fn_method_cbfbuilder_connections(
   Pointer<RustCallStatus> uniffiStatus,
 );
 
-@Native<
-  Pointer<Void> Function(Pointer<Void>, RustBuffer, Pointer<RustCallStatus>)
->(assetId: _uniffiAssetId)
-external Pointer<Void> uniffi_bdkffi_fn_method_cbfbuilder_data_dir(
+@Native<Pointer<Void> Function(Pointer<Void>, Uint32, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
+external Pointer<Void>
+uniffi_bdkffi_fn_method_cbfbuilder_emit_update_every_n_blocks(
   Pointer<Void> ptr,
-  RustBuffer data_dir,
+  int blocks,
   Pointer<RustCallStatus> uniffiStatus,
 );
 
@@ -34939,6 +37010,14 @@ external void uniffi_bdkffi_fn_free_update(
   Pointer<RustCallStatus> uniffiStatus,
 );
 
+@Native<RustBuffer Function(Pointer<Void>, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
+external RustBuffer uniffi_bdkffi_fn_method_update_transaction_observations(
+  Pointer<Void> ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
 @Native<Pointer<Void> Function(Pointer<Void>, Pointer<RustCallStatus>)>(
   assetId: _uniffiAssetId,
 )
@@ -35590,6 +37669,22 @@ uniffi_bdkffi_fn_method_wallet_start_sync_with_revealed_spks_at(
   Pointer<RustCallStatus> uniffiStatus,
 );
 
+@Native<
+  Pointer<Void> Function(
+    Pointer<Void>,
+    RustBuffer,
+    RustBuffer,
+    Pointer<RustCallStatus>,
+  )
+>(assetId: _uniffiAssetId)
+external Pointer<Void>
+uniffi_bdkffi_fn_method_wallet_start_sync_with_spk_indices(
+  Pointer<Void> ptr,
+  RustBuffer external_indices,
+  RustBuffer internal_indices,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
 @Native<RustBuffer Function(Pointer<Void>, Pointer<RustCallStatus>)>(
   assetId: _uniffiAssetId,
 )
@@ -35603,6 +37698,15 @@ external RustBuffer uniffi_bdkffi_fn_method_wallet_take_staged(
 )
 external RustBuffer uniffi_bdkffi_fn_method_wallet_transactions(
   Pointer<Void> ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
+@Native<
+  RustBuffer Function(Pointer<Void>, Pointer<Void>, Pointer<RustCallStatus>)
+>(assetId: _uniffiAssetId)
+external RustBuffer uniffi_bdkffi_fn_method_wallet_try_finalize_psbt(
+  Pointer<Void> ptr,
+  Pointer<Void> psbt,
   Pointer<RustCallStatus> uniffiStatus,
 );
 
@@ -35890,6 +37994,24 @@ external RustBuffer uniffi_bdkffi_fn_method_feerateerror_uniffi_trait_display(
 @Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
   assetId: _uniffiAssetId,
 )
+external RustBuffer
+uniffi_bdkffi_fn_method_finalizepsbterror_uniffi_trait_debug(
+  RustBuffer ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
+@Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
+external RustBuffer
+uniffi_bdkffi_fn_method_finalizepsbterror_uniffi_trait_display(
+  RustBuffer ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
+@Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
 external RustBuffer uniffi_bdkffi_fn_method_fromscripterror_uniffi_trait_debug(
   RustBuffer ptr,
   Pointer<RustCallStatus> uniffiStatus,
@@ -35916,6 +38038,22 @@ external RustBuffer uniffi_bdkffi_fn_method_hashparseerror_uniffi_trait_debug(
   assetId: _uniffiAssetId,
 )
 external RustBuffer uniffi_bdkffi_fn_method_hashparseerror_uniffi_trait_display(
+  RustBuffer ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
+@Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
+external RustBuffer uniffi_bdkffi_fn_method_inputsignerror_uniffi_trait_debug(
+  RustBuffer ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
+@Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
+external RustBuffer uniffi_bdkffi_fn_method_inputsignerror_uniffi_trait_display(
   RustBuffer ptr,
   Pointer<RustCallStatus> uniffiStatus,
 );
@@ -36060,6 +38198,22 @@ external RustBuffer uniffi_bdkffi_fn_method_psbtparseerror_uniffi_trait_display(
 @Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
   assetId: _uniffiAssetId,
 )
+external RustBuffer uniffi_bdkffi_fn_method_psbtsignerror_uniffi_trait_debug(
+  RustBuffer ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
+@Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
+external RustBuffer uniffi_bdkffi_fn_method_psbtsignerror_uniffi_trait_display(
+  RustBuffer ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
+@Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
 external RustBuffer
 uniffi_bdkffi_fn_method_requestbuildererror_uniffi_trait_debug(
   RustBuffer ptr,
@@ -36112,6 +38266,22 @@ external RustBuffer uniffi_bdkffi_fn_method_signererror_uniffi_trait_display(
 @Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
   assetId: _uniffiAssetId,
 )
+external RustBuffer uniffi_bdkffi_fn_method_spkindexerror_uniffi_trait_debug(
+  RustBuffer ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
+@Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
+external RustBuffer uniffi_bdkffi_fn_method_spkindexerror_uniffi_trait_display(
+  RustBuffer ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
+@Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
 external RustBuffer uniffi_bdkffi_fn_method_transactionerror_uniffi_trait_debug(
   RustBuffer ptr,
   Pointer<RustCallStatus> uniffiStatus,
@@ -36142,10 +38312,35 @@ external RustBuffer uniffi_bdkffi_fn_method_txidparseerror_uniffi_trait_display(
   Pointer<RustCallStatus> uniffiStatus,
 );
 
+@Native<Int8 Function(RustBuffer, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
+external int uniffi_bdkffi_fn_method_finalizeinputoutcome_is_finalized(
+  RustBuffer ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
+@Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
+external RustBuffer
+uniffi_bdkffi_fn_method_txrejectedreason_uniffi_trait_display(
+  RustBuffer ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
 @Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
   assetId: _uniffiAssetId,
 )
 external RustBuffer uniffi_bdkffi_fn_method_walletevent_uniffi_trait_display(
+  RustBuffer ptr,
+  Pointer<RustCallStatus> uniffiStatus,
+);
+
+@Native<RustBuffer Function(RustBuffer, Pointer<RustCallStatus>)>(
+  assetId: _uniffiAssetId,
+)
+external RustBuffer uniffi_bdkffi_fn_method_psbtsignresult_uniffi_trait_display(
   RustBuffer ptr,
   Pointer<RustCallStatus> uniffiStatus,
 );
@@ -36621,6 +38816,9 @@ external int uniffi_bdkffi_checksum_method_psbt_output();
 external int uniffi_bdkffi_checksum_method_psbt_serialize();
 
 @Native<Uint16 Function()>(assetId: _uniffiAssetId)
+external int uniffi_bdkffi_checksum_method_psbt_sign();
+
+@Native<Uint16 Function()>(assetId: _uniffiAssetId)
 external int uniffi_bdkffi_checksum_method_psbt_spend_utxo();
 
 @Native<Uint16 Function()>(assetId: _uniffiAssetId)
@@ -36870,7 +39068,8 @@ uniffi_bdkffi_checksum_method_cbfbuilder_configure_timeout_millis();
 external int uniffi_bdkffi_checksum_method_cbfbuilder_connections();
 
 @Native<Uint16 Function()>(assetId: _uniffiAssetId)
-external int uniffi_bdkffi_checksum_method_cbfbuilder_data_dir();
+external int
+uniffi_bdkffi_checksum_method_cbfbuilder_emit_update_every_n_blocks();
 
 @Native<Uint16 Function()>(assetId: _uniffiAssetId)
 external int uniffi_bdkffi_checksum_method_cbfbuilder_only_configured_peers();
@@ -37116,6 +39315,9 @@ external int uniffi_bdkffi_checksum_method_syncrequestbuilder_inspect_spks();
 external int uniffi_bdkffi_checksum_method_syncscriptinspector_inspect();
 
 @Native<Uint16 Function()>(assetId: _uniffiAssetId)
+external int uniffi_bdkffi_checksum_method_update_transaction_observations();
+
+@Native<Uint16 Function()>(assetId: _uniffiAssetId)
 external int uniffi_bdkffi_checksum_method_wallet_apply_evicted_txs();
 
 @Native<Uint16 Function()>(assetId: _uniffiAssetId)
@@ -37254,10 +39456,16 @@ external int
 uniffi_bdkffi_checksum_method_wallet_start_sync_with_revealed_spks_at();
 
 @Native<Uint16 Function()>(assetId: _uniffiAssetId)
+external int uniffi_bdkffi_checksum_method_wallet_start_sync_with_spk_indices();
+
+@Native<Uint16 Function()>(assetId: _uniffiAssetId)
 external int uniffi_bdkffi_checksum_method_wallet_take_staged();
 
 @Native<Uint16 Function()>(assetId: _uniffiAssetId)
 external int uniffi_bdkffi_checksum_method_wallet_transactions();
+
+@Native<Uint16 Function()>(assetId: _uniffiAssetId)
+external int uniffi_bdkffi_checksum_method_wallet_try_finalize_psbt();
 
 @Native<Uint16 Function()>(assetId: _uniffiAssetId)
 external int uniffi_bdkffi_checksum_method_wallet_tx_details();
@@ -37656,6 +39864,9 @@ void _checkApiChecksums() {
   if (uniffi_bdkffi_checksum_method_psbt_serialize() != 19175) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
+  if (uniffi_bdkffi_checksum_method_psbt_sign() != 56578) {
+    throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
+  }
   if (uniffi_bdkffi_checksum_method_psbt_spend_utxo() != 47096) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
@@ -37777,11 +39988,11 @@ void _checkApiChecksums() {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
   if (uniffi_bdkffi_checksum_method_electrumclient_populate_anchor_cache() !=
-      48774) {
+      52931) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
   if (uniffi_bdkffi_checksum_method_electrumclient_populate_tx_cache() !=
-      58622) {
+      53901) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
   if (uniffi_bdkffi_checksum_method_electrumclient_relay_fee() != 22615) {
@@ -37920,7 +40131,8 @@ void _checkApiChecksums() {
   if (uniffi_bdkffi_checksum_method_cbfbuilder_connections() != 48760) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
-  if (uniffi_bdkffi_checksum_method_cbfbuilder_data_dir() != 59862) {
+  if (uniffi_bdkffi_checksum_method_cbfbuilder_emit_update_every_n_blocks() !=
+      53874) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
   if (uniffi_bdkffi_checksum_method_cbfbuilder_only_configured_peers() !=
@@ -37967,7 +40179,7 @@ void _checkApiChecksums() {
   if (uniffi_bdkffi_checksum_method_cbfclient_shutdown() != 52518) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
-  if (uniffi_bdkffi_checksum_method_cbfclient_update() != 43120) {
+  if (uniffi_bdkffi_checksum_method_cbfclient_update() != 28413) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
   if (uniffi_bdkffi_checksum_method_cbfnode_run() != 28472) {
@@ -38172,6 +40384,10 @@ void _checkApiChecksums() {
   if (uniffi_bdkffi_checksum_method_syncscriptinspector_inspect() != 53256) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
+  if (uniffi_bdkffi_checksum_method_update_transaction_observations() !=
+      47633) {
+    throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
+  }
   if (uniffi_bdkffi_checksum_method_wallet_apply_evicted_txs() != 54143) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
@@ -38311,10 +40527,17 @@ void _checkApiChecksums() {
       19510) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
+  if (uniffi_bdkffi_checksum_method_wallet_start_sync_with_spk_indices() !=
+      42344) {
+    throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
+  }
   if (uniffi_bdkffi_checksum_method_wallet_take_staged() != 62384) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
   if (uniffi_bdkffi_checksum_method_wallet_transactions() != 57031) {
+    throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
+  }
+  if (uniffi_bdkffi_checksum_method_wallet_try_finalize_psbt() != 9713) {
     throw UniffiInternalError.panicked("UniFFI API checksum mismatch");
   }
   if (uniffi_bdkffi_checksum_method_wallet_tx_details() != 30143) {
